@@ -3,6 +3,7 @@ import PlantGrowth from "@/components/PlantGrowth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useAddRecord,
@@ -181,7 +182,6 @@ function MeditationTimer() {
           瞑想タイマー
         </h2>
 
-        {/* Circular progress ring + time display */}
         <div className="flex flex-col items-center gap-6">
           <div className="relative w-44 h-44">
             <svg
@@ -190,7 +190,6 @@ function MeditationTimer() {
               aria-hidden="true"
             >
               <title>タイマー進捗</title>
-              {/* Track */}
               <circle
                 cx="50"
                 cy="50"
@@ -200,7 +199,6 @@ function MeditationTimer() {
                 strokeWidth="6"
                 className="text-secondary"
               />
-              {/* Progress */}
               <circle
                 cx="50"
                 cy="50"
@@ -256,7 +254,6 @@ function MeditationTimer() {
                 exit={{ opacity: 0 }}
                 className="w-full space-y-4"
               >
-                {/* Duration input (only when idle) */}
                 {status === "idle" && (
                   <div className="flex items-center justify-center gap-3">
                     <Label
@@ -280,7 +277,6 @@ function MeditationTimer() {
                   </div>
                 )}
 
-                {/* Buttons */}
                 <div className="flex gap-3 justify-center">
                   {status !== "running" ? (
                     <Button
@@ -404,6 +400,13 @@ function StatCard({
   );
 }
 
+function computeGrowthInfo(totalMin: number): { stage: number; next: number } {
+  const stage = Math.min(Math.floor(totalMin / 20), 50);
+  const remainder = totalMin % 20;
+  const next = remainder === 0 ? 20 : 20 - remainder;
+  return { stage, next };
+}
+
 export default function MeditationLog() {
   const today = getTodayStr();
   const [date, setDate] = useState(today);
@@ -412,12 +415,31 @@ export default function MeditationLog() {
   const [moodAfter, setMoodAfter] = useState(3);
   const [memo, setMemo] = useState("");
 
+  const [demoMode, setDemoMode] = useState(false);
+  const [demoStage, setDemoStage] = useState(0);
+
   const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
   const addRecord = useAddRecord();
   const deleteRecord = useDeleteRecord();
 
   const streak = computeStreak(records);
+  const totalMin = Number(totalMinutes);
+  const { stage: actualStage, next: nextGrowth } = computeGrowthInfo(totalMin);
+  const displayMinutes = demoMode ? demoStage * 20 : totalMin;
+
+  // Level-up celebration
+  const prevStageRef = useRef<number | null>(null);
+  const [levelUpStage, setLevelUpStage] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (prevStageRef.current !== null && actualStage > prevStageRef.current) {
+      setLevelUpStage(actualStage);
+      const t = setTimeout(() => setLevelUpStage(null), 3000);
+      return () => clearTimeout(t);
+    }
+    prevStageRef.current = actualStage;
+  }, [actualStage]);
 
   const sortedRecords = [...records].sort((a, b) => {
     const dateCmp = b.record.date.localeCompare(a.record.date);
@@ -495,10 +517,82 @@ export default function MeditationLog() {
         {/* Plant Growth */}
         <section data-ocid="plant.section">
           <div className="bg-card rounded-2xl shadow-card p-6 flex flex-col items-center gap-2">
-            <h2 className="text-base font-semibold text-foreground mb-2">
-              あなたの植物
-            </h2>
-            <PlantGrowth totalMinutes={Number(totalMinutes)} />
+            <div className="w-full flex items-center justify-between mb-2">
+              <h2 className="text-base font-semibold text-foreground">
+                あなたの植物
+              </h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDemoMode((prev) => !prev)}
+                className="rounded-xl text-xs px-3 h-7 border-border text-muted-foreground hover:text-foreground"
+                data-ocid="plant.toggle"
+              >
+                {demoMode ? "サンプルを隠す" : "サンプルを見る"}
+              </Button>
+            </div>
+
+            <PlantGrowth totalMinutes={displayMinutes} isSample={demoMode} />
+
+            {/* Growth info */}
+            {!demoMode && (
+              <motion.div
+                key="growth-info"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col items-center gap-1 py-3"
+                data-ocid="plant.growth_info"
+              >
+                <p className="text-xs text-gray-400 font-medium tracking-wide">
+                  Stage {actualStage} / 50
+                </p>
+                {actualStage < 50 ? (
+                  <p className="text-xs text-gray-400">
+                    Next growth in {nextGrowth} min
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-400">
+                    最大段階に到達しました 🌸
+                  </p>
+                )}
+              </motion.div>
+            )}
+
+            <AnimatePresence mode="wait">
+              {demoMode && (
+                <motion.div
+                  key="demo"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full mt-2 space-y-3"
+                >
+                  <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                    <span>段階 {demoStage} / 50</span>
+                    <span className="text-[11px] bg-secondary rounded-full px-2 py-0.5">
+                      サンプル表示中
+                    </span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={50}
+                    step={1}
+                    value={[demoStage]}
+                    onValueChange={([v]) => setDemoStage(v)}
+                    className="w-full"
+                    data-ocid="plant.panel"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground/60 px-1">
+                    <span>芽吹き</span>
+                    <span>つぼみ</span>
+                    <span>開花 🌸</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
 
@@ -631,7 +725,6 @@ export default function MeditationLog() {
                     data-ocid={`records.item.${idx + 1}`}
                     className="bg-card rounded-2xl shadow-card p-5 flex gap-4 items-start"
                   >
-                    {/* Date + duration */}
                     <div className="shrink-0 min-w-[80px] text-center">
                       <p className="text-xs font-semibold text-primary">
                         {item.record.date.slice(5).replace("-", "/")}
@@ -647,10 +740,8 @@ export default function MeditationLog() {
                       </div>
                     </div>
 
-                    {/* Divider */}
                     <div className="w-px self-stretch bg-border" />
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 text-sm text-foreground">
                         <span className="text-base">
@@ -672,7 +763,6 @@ export default function MeditationLog() {
                       )}
                     </div>
 
-                    {/* Delete */}
                     <button
                       type="button"
                       onClick={() => handleDelete(item.id)}
@@ -707,6 +797,32 @@ export default function MeditationLog() {
           caffeine.ai
         </a>
       </footer>
+
+      {/* Level-up celebration overlay */}
+      <AnimatePresence>
+        {levelUpStage !== null && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.7, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -20 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+          >
+            <div className="bg-card border-2 border-primary rounded-3xl px-8 py-6 shadow-2xl text-center max-w-xs mx-4">
+              <p className="text-3xl mb-2">✦</p>
+              <p className="text-xl font-bold text-primary mb-1">
+                成長しました！
+              </p>
+              <p className="text-base text-foreground">
+                Stage {levelUpStage} / 50
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                植物が育っています 🌿
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
