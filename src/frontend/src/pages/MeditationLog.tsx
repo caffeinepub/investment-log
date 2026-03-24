@@ -1,9 +1,10 @@
 import type { MeditationRecordWithId } from "@/backend";
-import PlantGrowth from "@/components/PlantGrowth";
+import CycleCompleteModal from "@/components/CycleCompleteModal";
+import PersonalitySelectScreen from "@/components/PersonalitySelectScreen";
+import PlantGrowth, { type TreePersonality } from "@/components/PlantGrowth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useAddRecord,
@@ -23,6 +24,26 @@ const MOOD_EMOJI: Record<number, string> = {
   4: "😊",
   5: "😌",
 };
+
+const PERSONALITY_ORDER: TreePersonality[] = ["star", "foolish", "empress"];
+
+function getPersonality(): TreePersonality | null {
+  const v = localStorage.getItem("meditation_tree_personality");
+  if (v === "star" || v === "foolish" || v === "empress") return v;
+  return null;
+}
+
+function getCycleIndex(): number {
+  return Number(localStorage.getItem("meditation_cycle_index") ?? 0);
+}
+
+function getStayHere(): boolean {
+  return localStorage.getItem("meditation_stay_here") === "true";
+}
+
+function getCycleCompleteShown(): boolean {
+  return localStorage.getItem("meditation_cycle_complete_shown") === "true";
+}
 
 function formatDuration(minutes: bigint): string {
   const m = Number(minutes);
@@ -82,13 +103,11 @@ function playAlarm(audioCtxRef: React.MutableRefObject<AudioContext | null>) {
     audioCtxRef.current = new AudioContext();
   }
   const ctx = audioCtxRef.current;
-
   const tones = [
     { freq: 528, start: 0, duration: 0.5 },
     { freq: 660, start: 0.55, duration: 0.5 },
     { freq: 880, start: 1.1, duration: 0.6 },
   ];
-
   for (const tone of tones) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -115,6 +134,9 @@ function MeditationTimer() {
   const [remaining, setRemaining] = useState(10 * 60);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const remainingAtStartRef = useRef<number>(0);
+  const statusRef = useRef<TimerStatus>("idle");
 
   const totalSeconds = targetMinutes * 60;
   const progress =
@@ -131,35 +153,70 @@ function MeditationTimer() {
     return () => clearTimer();
   }, [clearTimer]);
 
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (
+        document.visibilityState === "visible" &&
+        statusRef.current === "running" &&
+        startTimeRef.current !== null
+      ) {
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        const newRemaining = Math.max(0, remainingAtStartRef.current - elapsed);
+        setRemaining(newRemaining);
+        if (newRemaining === 0) {
+          clearTimer();
+          setStatus("finished");
+          playAlarm(audioCtxRef);
+        }
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [clearTimer]);
+
   function handleStart() {
     if (status === "idle") {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioContext();
       }
-      setRemaining(targetMinutes * 60);
+      const initialRemaining = targetMinutes * 60;
+      setRemaining(initialRemaining);
+      remainingAtStartRef.current = initialRemaining;
+    } else {
+      remainingAtStartRef.current = remaining;
     }
+    startTimeRef.current = Date.now();
     setStatus("running");
+
     intervalRef.current = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-          setStatus("finished");
-          playAlarm(audioCtxRef);
-          return 0;
-        }
-        return prev - 1;
-      });
+      if (startTimeRef.current === null) return;
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const newRemaining = Math.max(0, remainingAtStartRef.current - elapsed);
+      setRemaining(newRemaining);
+      if (newRemaining <= 0) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        setStatus("finished");
+        playAlarm(audioCtxRef);
+      }
     }, 1000);
   }
 
   function handlePause() {
     clearTimer();
+    startTimeRef.current = null;
     setStatus("paused");
   }
 
   function handleReset() {
     clearTimer();
+    startTimeRef.current = null;
     setStatus("idle");
     setRemaining(targetMinutes * 60);
   }
@@ -181,7 +238,6 @@ function MeditationTimer() {
         <h2 className="text-base font-semibold text-foreground mb-6">
           瞑想タイマー
         </h2>
-
         <div className="flex flex-col items-center gap-6">
           <div className="relative w-44 h-44">
             <svg
@@ -276,7 +332,6 @@ function MeditationTimer() {
                     />
                   </div>
                 )}
-
                 <div className="flex gap-3 justify-center">
                   {status !== "running" ? (
                     <Button
@@ -400,13 +455,6 @@ function StatCard({
   );
 }
 
-function computeGrowthInfo(totalMin: number): { stage: number; next: number } {
-  const stage = Math.min(Math.floor(totalMin / 20), 50);
-  const remainder = totalMin % 20;
-  const next = remainder === 0 ? 20 : 20 - remainder;
-  return { stage, next };
-}
-
 export default function MeditationLog() {
   const today = getTodayStr();
   const [date, setDate] = useState(today);
@@ -415,8 +463,12 @@ export default function MeditationLog() {
   const [moodAfter, setMoodAfter] = useState(3);
   const [memo, setMemo] = useState("");
 
-  const [demoMode, setDemoMode] = useState(false);
-  const [demoStage, setDemoStage] = useState(0);
+  // Personality / cycle state
+  const [personality, setPersonality] = useState<TreePersonality | null>(() =>
+    getPersonality(),
+  );
+  const [stayHere, setStayHere] = useState<boolean>(() => getStayHere());
+  const [cycleCompleteOpen, setCycleCompleteOpen] = useState(false);
 
   const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
@@ -425,21 +477,53 @@ export default function MeditationLog() {
 
   const streak = computeStreak(records);
   const totalMin = Number(totalMinutes);
-  const { stage: actualStage, next: nextGrowth } = computeGrowthInfo(totalMin);
-  const displayMinutes = demoMode ? demoStage * 20 : totalMin;
+  const stage = Math.min(Math.floor(totalMin / 20), 50);
 
   // Level-up celebration
   const prevStageRef = useRef<number | null>(null);
   const [levelUpStage, setLevelUpStage] = useState<number | null>(null);
 
   useEffect(() => {
-    if (prevStageRef.current !== null && actualStage > prevStageRef.current) {
-      setLevelUpStage(actualStage);
-      const t = setTimeout(() => setLevelUpStage(null), 3000);
-      return () => clearTimeout(t);
+    if (prevStageRef.current !== null && stage > prevStageRef.current) {
+      if (stage === 50) {
+        // Show cycle complete modal if not shown yet
+        if (!getCycleCompleteShown()) {
+          setCycleCompleteOpen(true);
+          localStorage.setItem("meditation_cycle_complete_shown", "true");
+        }
+      } else {
+        setLevelUpStage(stage);
+        const t = setTimeout(() => setLevelUpStage(null), 3000);
+        return () => clearTimeout(t);
+      }
     }
-    prevStageRef.current = actualStage;
-  }, [actualStage]);
+    prevStageRef.current = stage;
+  }, [stage]);
+
+  function handleSelectPersonality(p: TreePersonality) {
+    localStorage.setItem("meditation_tree_personality", p);
+    localStorage.setItem("meditation_cycle_index", "0");
+    setPersonality(p);
+  }
+
+  function handleStayHere() {
+    localStorage.setItem("meditation_stay_here", "true");
+    setStayHere(true);
+    setCycleCompleteOpen(false);
+  }
+
+  function handleNextCycle() {
+    const nextIndex = getCycleIndex() + 1;
+    const nextPersonality =
+      PERSONALITY_ORDER[nextIndex % PERSONALITY_ORDER.length];
+    localStorage.setItem("meditation_cycle_index", String(nextIndex));
+    localStorage.setItem("meditation_tree_personality", nextPersonality);
+    localStorage.removeItem("meditation_stay_here");
+    localStorage.removeItem("meditation_cycle_complete_shown");
+    setPersonality(nextPersonality);
+    setStayHere(false);
+    setCycleCompleteOpen(false);
+  }
 
   const sortedRecords = [...records].sort((a, b) => {
     const dateCmp = b.record.date.localeCompare(a.record.date);
@@ -482,6 +566,11 @@ export default function MeditationLog() {
     }
   }
 
+  // Show personality select if not yet chosen
+  if (!personality) {
+    return <PersonalitySelectScreen onSelect={handleSelectPersonality} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -517,82 +606,16 @@ export default function MeditationLog() {
         {/* Plant Growth */}
         <section data-ocid="plant.section">
           <div className="bg-card rounded-2xl shadow-card p-6 flex flex-col items-center gap-2">
-            <div className="w-full flex items-center justify-between mb-2">
+            <div className="w-full mb-2">
               <h2 className="text-base font-semibold text-foreground">
-                あなたの植物
+                あなたの木
               </h2>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setDemoMode((prev) => !prev)}
-                className="rounded-xl text-xs px-3 h-7 border-border text-muted-foreground hover:text-foreground"
-                data-ocid="plant.toggle"
-              >
-                {demoMode ? "サンプルを隠す" : "サンプルを見る"}
-              </Button>
             </div>
-
-            <PlantGrowth totalMinutes={displayMinutes} isSample={demoMode} />
-
-            {/* Growth info */}
-            {!demoMode && (
-              <motion.div
-                key="growth-info"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                className="flex flex-col items-center gap-1 py-3"
-                data-ocid="plant.growth_info"
-              >
-                <p className="text-xs text-gray-400 font-medium tracking-wide">
-                  Stage {actualStage} / 50
-                </p>
-                {actualStage < 50 ? (
-                  <p className="text-xs text-gray-400">
-                    Next growth in {nextGrowth} min
-                  </p>
-                ) : (
-                  <p className="text-xs text-gray-400">
-                    最大段階に到達しました 🌸
-                  </p>
-                )}
-              </motion.div>
-            )}
-
-            <AnimatePresence mode="wait">
-              {demoMode && (
-                <motion.div
-                  key="demo"
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full mt-2 space-y-3"
-                >
-                  <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                    <span>段階 {demoStage} / 50</span>
-                    <span className="text-[11px] bg-secondary rounded-full px-2 py-0.5">
-                      サンプル表示中
-                    </span>
-                  </div>
-                  <Slider
-                    min={0}
-                    max={50}
-                    step={1}
-                    value={[demoStage]}
-                    onValueChange={([v]) => setDemoStage(v)}
-                    className="w-full"
-                    data-ocid="plant.panel"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground/60 px-1">
-                    <span>芽吹き</span>
-                    <span>つぼみ</span>
-                    <span>開花 🌸</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <PlantGrowth
+              totalMinutes={totalMin}
+              personality={personality}
+              stayHere={stayHere}
+            />
           </div>
         </section>
 
@@ -814,15 +837,22 @@ export default function MeditationLog() {
                 成長しました！
               </p>
               <p className="text-base text-foreground">
-                Stage {levelUpStage} / 50
+                段階 {levelUpStage} / 50
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                植物が育っています 🌿
+                木が育っています 🌿
               </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Cycle Complete Modal */}
+      <CycleCompleteModal
+        open={cycleCompleteOpen}
+        onStayHere={handleStayHere}
+        onNextCycle={handleNextCycle}
+      />
     </div>
   );
 }
