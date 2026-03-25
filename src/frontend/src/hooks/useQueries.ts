@@ -139,7 +139,6 @@ export function useGetTreeState() {
     queryKey: ["treeState"],
     queryFn: async () => {
       if (!actor) return null;
-      // biome-ignore lint/suspicious/noExplicitAny: backend.ts is protected; method exists at runtime
       return (actor as any).getTreeState() as Promise<TreeState>;
     },
     enabled: !!actor && !isFetching,
@@ -157,7 +156,6 @@ export function useSetTreeState() {
       cycleCompleteShown: boolean;
     }) => {
       if (!actor) throw new Error("Actor not ready");
-      // biome-ignore lint/suspicious/noExplicitAny: backend.ts is protected; method exists at runtime
       return (actor as any).setTreeState(
         args.personality,
         args.cycleIndex,
@@ -173,7 +171,6 @@ export function useSetTreeState() {
 
 // ---- Legacy stubs (kept for InvestmentLog.tsx compat) ----
 export const useGetInvestments = () =>
-  // biome-ignore lint/suspicious/noExplicitAny: legacy stub
   useQuery<any[]>({ queryKey: ["investments"], queryFn: async () => [] });
 export const useAddInvestment = () =>
   useMutation({ mutationFn: async (_args: unknown) => {} });

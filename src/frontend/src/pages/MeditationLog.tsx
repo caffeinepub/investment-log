@@ -2,6 +2,7 @@ import type { MeditationRecordWithId } from "@/backend";
 import CycleCompleteModal from "@/components/CycleCompleteModal";
 import PersonalitySelectScreen from "@/components/PersonalitySelectScreen";
 import PlantGrowth, { type TreePersonality } from "@/components/PlantGrowth";
+import { WhisperBubble } from "@/components/WhisperBubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ import {
   useSetTreeState,
 } from "@/hooks/useQueries";
 import { useLanguage } from "@/i18n";
+import { rollWhisper } from "@/lib/whisperPhrases";
 import ReviewPage from "@/pages/ReviewPage";
 import { CalendarDays, Clock, Droplets, Loader2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -101,6 +103,12 @@ function MeditationTimer({
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [remaining, setRemaining] = useState(10 * 60);
+  const [showFlash, setShowFlash] = useState(false);
+
+  const triggerFlash = useCallback(() => {
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 2000);
+  }, []);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -133,11 +141,12 @@ function MeditationTimer({
         setStatus("finished");
         playAlarm(audioCtxRef);
         vibrate([100, 50, 100, 50, 100]);
+        triggerFlash();
         elapsedMinutesRef.current = targetMinutesRef.current;
         onElapsedMinutes?.(targetMinutesRef.current);
       }
     }, 500);
-  }, [clearTimer, onElapsedMinutes]);
+  }, [clearTimer, onElapsedMinutes, triggerFlash]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only
   useEffect(() => {
@@ -163,6 +172,7 @@ function MeditationTimer({
           setRemaining(0);
           playAlarm(audioCtxRef);
           vibrate([100, 50, 100, 50, 100]);
+          triggerFlash();
           onElapsedMinutes?.(saved.targetMinutes);
         }
       } else if (saved.status === "paused") {
@@ -204,6 +214,7 @@ function MeditationTimer({
           setStatus("finished");
           playAlarm(audioCtxRef);
           vibrate([100, 50, 100, 50, 100]);
+          triggerFlash();
           elapsedMinutesRef.current = targetMinutesRef.current;
           onElapsedMinutes?.(targetMinutesRef.current);
         }
@@ -213,7 +224,7 @@ function MeditationTimer({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [clearTimer, onElapsedMinutes]);
+  }, [clearTimer, onElapsedMinutes, triggerFlash]);
 
   function handleStart() {
     let initialRemaining: number;
@@ -285,152 +296,185 @@ function MeditationTimer({
   const ss = String(remaining % 60).padStart(2, "0");
 
   return (
-    <section>
-      <div className="bg-card rounded-2xl shadow-card p-6">
-        <h2 className="text-base font-semibold text-foreground mb-6">
-          {t("timerTitle")}
-        </h2>
-        <div className="flex flex-col items-center gap-6">
-          <div className="relative w-44 h-44">
-            <svg
-              className="w-full h-full -rotate-90"
-              viewBox="0 0 100 100"
-              aria-hidden="true"
+    <>
+      {/* Timer completion flash overlay */}
+      <AnimatePresence>
+        {showFlash && (
+          <motion.div
+            key="flash"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.85, 0.6, 0] }}
+            transition={{ duration: 2, times: [0, 0.1, 0.5, 1] }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary pointer-events-none"
+          >
+            <motion.span
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="text-7xl mb-4"
             >
-              <title>{t("timerTitle")}</title>
-              <circle
-                cx="50"
-                cy="50"
-                r="44"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="6"
-                className="text-secondary"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="44"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="6"
-                strokeLinecap="round"
-                className="text-primary transition-all duration-500"
-                strokeDasharray={`${2 * Math.PI * 44}`}
-                strokeDashoffset={`${2 * Math.PI * 44 * (1 - progress / 100)}`}
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-              {status === "finished" ? (
-                <span className="text-4xl">🙏</span>
-              ) : (
-                <>
-                  <span
-                    className="text-5xl font-bold text-primary leading-none tracking-tight"
-                    data-ocid="timer.display"
-                  >
-                    {mm}:{ss}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {status === "idle"
-                      ? t("timerReady")
-                      : status === "running"
-                        ? t("timerRunning")
-                        : t("timerPaused")}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          <AnimatePresence mode="wait">
-            {status === "finished" ? (
-              <motion.p
-                key="done"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="text-base font-medium text-primary text-center"
+              🙏
+            </motion.span>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl font-semibold text-primary-foreground"
+            >
+              {t("timerDone")}
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <section>
+        <div className="bg-card rounded-2xl shadow-card p-6">
+          <h2 className="text-base font-semibold text-foreground mb-6">
+            {t("timerTitle")}
+          </h2>
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative w-44 h-44">
+              <svg
+                className="w-full h-full -rotate-90"
+                viewBox="0 0 100 100"
+                aria-hidden="true"
               >
-                {t("timerDone")}
-              </motion.p>
-            ) : (
-              <motion.div
-                key="controls"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="w-full space-y-4"
-              >
-                {status === "idle" && (
-                  <div className="flex items-center justify-center gap-3">
-                    <Label
-                      htmlFor="timer-minutes"
-                      className="text-sm text-muted-foreground whitespace-nowrap"
+                <title>{t("timerTitle")}</title>
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  className="text-secondary"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  className="text-primary transition-all duration-500"
+                  strokeDasharray={`${2 * Math.PI * 44}`}
+                  strokeDashoffset={`${2 * Math.PI * 44 * (1 - progress / 100)}`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                {status === "finished" ? (
+                  <span className="text-4xl">🙏</span>
+                ) : (
+                  <>
+                    <span
+                      className="text-5xl font-bold text-primary leading-none tracking-tight"
+                      data-ocid="timer.display"
                     >
-                      {t("timerDurationLabel")}
-                    </Label>
-                    <Input
-                      id="timer-minutes"
-                      type="number"
-                      min={1}
-                      max={120}
-                      value={targetMinutes}
-                      onChange={(e) =>
-                        handleTargetChange(Number(e.target.value))
-                      }
-                      className="w-20 text-center rounded-lg border-border"
-                      data-ocid="timer.duration.input"
-                    />
-                  </div>
+                      {mm}:{ss}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {status === "idle"
+                        ? t("timerReady")
+                        : status === "running"
+                          ? t("timerRunning")
+                          : t("timerPaused")}
+                    </span>
+                  </>
                 )}
-                <div className="flex gap-3 justify-center">
-                  {status !== "running" ? (
-                    <Button
-                      onClick={handleStart}
-                      className="rounded-xl px-6 bg-primary text-primary-foreground hover:bg-primary/90"
-                      data-ocid="timer.primary_button"
-                    >
-                      {status === "paused" ? t("timerResume") : t("timerStart")}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handlePause}
-                      variant="outline"
-                      className="rounded-xl px-6"
-                      data-ocid="timer.secondary_button"
-                    >
-                      {t("timerPause")}
-                    </Button>
-                  )}
-                  {status !== "idle" && (
-                    <Button
-                      onClick={handleReset}
-                      variant="ghost"
-                      className="rounded-xl px-6 text-muted-foreground"
-                      data-ocid="timer.cancel_button"
-                    >
-                      {t("timerReset")}
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </div>
 
-          {status === "finished" && (
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="rounded-xl px-6"
-              data-ocid="timer.cancel_button"
-            >
-              {t("timerReset")}
-            </Button>
-          )}
+            <AnimatePresence mode="wait">
+              {status === "finished" ? (
+                <motion.p
+                  key="done"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-base font-medium text-primary text-center"
+                >
+                  {t("timerDone")}
+                </motion.p>
+              ) : (
+                <motion.div
+                  key="controls"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full space-y-4"
+                >
+                  {status === "idle" && (
+                    <div className="flex items-center justify-center gap-3">
+                      <Label
+                        htmlFor="timer-minutes"
+                        className="text-sm text-muted-foreground whitespace-nowrap"
+                      >
+                        {t("timerDurationLabel")}
+                      </Label>
+                      <Input
+                        id="timer-minutes"
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={targetMinutes}
+                        onChange={(e) =>
+                          handleTargetChange(Number(e.target.value))
+                        }
+                        className="w-20 text-center rounded-lg border-border"
+                        data-ocid="timer.duration.input"
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-3 justify-center">
+                    {status !== "running" ? (
+                      <Button
+                        onClick={handleStart}
+                        className="rounded-xl px-6 bg-primary text-primary-foreground hover:bg-primary/90"
+                        data-ocid="timer.primary_button"
+                      >
+                        {status === "paused"
+                          ? t("timerResume")
+                          : t("timerStart")}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handlePause}
+                        variant="outline"
+                        className="rounded-xl px-6"
+                        data-ocid="timer.secondary_button"
+                      >
+                        {t("timerPause")}
+                      </Button>
+                    )}
+                    {status !== "idle" && (
+                      <Button
+                        onClick={handleReset}
+                        variant="ghost"
+                        className="rounded-xl px-6 text-muted-foreground"
+                        data-ocid="timer.cancel_button"
+                      >
+                        {t("timerReset")}
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {status === "finished" && (
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                className="rounded-xl px-6"
+                data-ocid="timer.cancel_button"
+              >
+                {t("timerReset")}
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -484,6 +528,7 @@ export default function MeditationLog() {
   const [stayHere, setStayHere] = useState<boolean>(false);
   const [cycleCompleteOpen, setCycleCompleteOpen] = useState(false);
   const [cycleTransition, setCycleTransition] = useState(false);
+  const [whisperPhrase, setWhisperPhrase] = useState<string | null>(null);
 
   const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
@@ -633,6 +678,10 @@ export default function MeditationLog() {
       });
       toast.success(t("formSuccess"));
       vibrate(50);
+      if (personality) {
+        const phrase = rollWhisper(stage, personality);
+        if (phrase) setWhisperPhrase(phrase);
+      }
       setDuration("");
       setMemo("");
       setDate(today);
@@ -732,6 +781,10 @@ export default function MeditationLog() {
                   totalMinutes={totalMin}
                   personality={personality}
                   stayHere={stayHere}
+                />
+                <WhisperBubble
+                  phrase={whisperPhrase}
+                  onDone={() => setWhisperPhrase(null)}
                 />
               </div>
             </section>
