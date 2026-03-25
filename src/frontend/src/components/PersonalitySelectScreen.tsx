@@ -1,28 +1,7 @@
+import { useLanguage } from "@/i18n";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import type { TreePersonality } from "./PlantGrowth";
-
-const PERSONALITIES: {
-  id: TreePersonality;
-  name: string;
-  description: string;
-}[] = [
-  {
-    id: "star",
-    name: "スター",
-    description: "上へ、ひたすらに",
-  },
-  {
-    id: "foolish",
-    name: "フロウ",
-    description: "我が道を、のびのびと",
-  },
-  {
-    id: "empress",
-    name: "エンプレス",
-    description: "豊かに、満ちあふれて",
-  },
-];
 
 // Star: thin stem, grows straight up with slight rightward lean at tip, sparkle at top
 function StarSprout() {
@@ -232,16 +211,27 @@ type Phase = "intro" | "select" | "confirm";
 export default function PersonalitySelectScreen({
   onSelect,
 }: PersonalitySelectScreenProps) {
+  const { t } = useLanguage();
   const [phase, setPhase] = useState<Phase>("intro");
   const [pending, setPending] = useState<TreePersonality | null>(null);
+
+  const PERSONALITIES: {
+    id: TreePersonality;
+    name: string;
+    description: string;
+  }[] = [
+    { id: "star", name: t("starName"), description: t("starDesc") },
+    { id: "foolish", name: t("flowName"), description: t("flowDesc") },
+    { id: "empress", name: t("empressName"), description: t("empressDesc") },
+  ];
 
   function handleSproutClick(id: TreePersonality) {
     setPending(id);
     setPhase("confirm");
-    // Auto-transition after 1.5s
+    // Auto-transition after 4s
     setTimeout(() => {
       onSelect(id);
-    }, 1500);
+    }, 4000);
   }
 
   const pendingPersonality = PERSONALITIES.find((p) => p.id === pending);
@@ -264,7 +254,7 @@ export default function PersonalitySelectScreen({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              ようこそ
+              {t("onboardingWelcome")}
             </motion.p>
             <motion.p
               className="text-sm text-muted-foreground mb-2 leading-relaxed"
@@ -272,7 +262,7 @@ export default function PersonalitySelectScreen({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
             >
-              瞑想を続けると、あなただけの木が育ちます。
+              {t("onboardingDesc1")}
             </motion.p>
             <motion.p
               className="text-sm text-muted-foreground mb-10 leading-relaxed"
@@ -280,7 +270,7 @@ export default function PersonalitySelectScreen({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
             >
-              最初の一本を選んでください。
+              {t("onboardingDesc2")}
             </motion.p>
             <motion.button
               type="button"
@@ -291,7 +281,7 @@ export default function PersonalitySelectScreen({
               animate={{ opacity: 1 }}
               transition={{ delay: 1.1 }}
             >
-              次へ
+              {t("onboardingNext")}
             </motion.button>
           </motion.div>
         )}
@@ -312,7 +302,7 @@ export default function PersonalitySelectScreen({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
               >
-                あなたの木を選んでください
+                {t("onboardingSelectTitle")}
               </motion.h1>
               <motion.p
                 className="text-sm text-muted-foreground"
@@ -320,7 +310,7 @@ export default function PersonalitySelectScreen({
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
               >
-                最初の一本。これがあなたの旅の始まりです。
+                {t("onboardingSelectSubtitle")}
               </motion.p>
             </div>
 
@@ -377,7 +367,8 @@ export default function PersonalitySelectScreen({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {pendingPersonality.name}との旅が始まります
+              {pendingPersonality.name}
+              {t("journeyStart")}
             </motion.p>
             <motion.p
               className="text-sm text-muted-foreground"
@@ -385,7 +376,7 @@ export default function PersonalitySelectScreen({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              大切に育てましょう。
+              {t("onboardingConfirmBody")}
             </motion.p>
           </motion.div>
         )}

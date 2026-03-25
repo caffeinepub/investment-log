@@ -55,7 +55,38 @@ export function useAddRecord() {
         args.memo,
       );
     },
-    onSuccess: () => {
+    onMutate: async (args) => {
+      await queryClient.cancelQueries({ queryKey: ["records"] });
+      await queryClient.cancelQueries({ queryKey: ["totalMinutes"] });
+      const prevRecords = queryClient.getQueryData(["records"]);
+      const prevTotal = queryClient.getQueryData(["totalMinutes"]);
+      const tempId = BigInt(-Date.now());
+      queryClient.setQueryData(["records"], (old: any[]) => [
+        ...(old ?? []),
+        {
+          id: tempId,
+          record: {
+            date: args.date,
+            duration: args.duration,
+            moodBefore: args.moodBefore,
+            moodAfter: args.moodAfter,
+            memo: args.memo,
+          },
+        },
+      ]);
+      queryClient.setQueryData(
+        ["totalMinutes"],
+        (old: bigint) => (old ?? BigInt(0)) + args.duration,
+      );
+      return { prevRecords, prevTotal };
+    },
+    onError: (_err, _args, context: any) => {
+      if (context?.prevRecords !== undefined)
+        queryClient.setQueryData(["records"], context.prevRecords);
+      if (context?.prevTotal !== undefined)
+        queryClient.setQueryData(["totalMinutes"], context.prevTotal);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["records"] });
       queryClient.invalidateQueries({ queryKey: ["totalMinutes"] });
     },
@@ -70,7 +101,32 @@ export function useDeleteRecord() {
       if (!actor) throw new Error("Actor not ready");
       return actor.deleteRecord(id);
     },
-    onSuccess: () => {
+    onMutate: async (id: bigint) => {
+      await queryClient.cancelQueries({ queryKey: ["records"] });
+      await queryClient.cancelQueries({ queryKey: ["totalMinutes"] });
+      const prevRecords = queryClient.getQueryData<any[]>(["records"]) ?? [];
+      const prevTotal =
+        queryClient.getQueryData<bigint>(["totalMinutes"]) ?? BigInt(0);
+      const removing = prevRecords.find((r: any) => r.id === id);
+      queryClient.setQueryData(
+        ["records"],
+        prevRecords.filter((r: any) => r.id !== id),
+      );
+      if (removing) {
+        queryClient.setQueryData(["totalMinutes"], (old: bigint) => {
+          const next = (old ?? BigInt(0)) - removing.record.duration;
+          return next < BigInt(0) ? BigInt(0) : next;
+        });
+      }
+      return { prevRecords, prevTotal };
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.prevRecords !== undefined)
+        queryClient.setQueryData(["records"], context.prevRecords);
+      if (context?.prevTotal !== undefined)
+        queryClient.setQueryData(["totalMinutes"], context.prevTotal);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["records"] });
       queryClient.invalidateQueries({ queryKey: ["totalMinutes"] });
     },

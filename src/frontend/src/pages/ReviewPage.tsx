@@ -1,9 +1,8 @@
 import type { MeditationRecordWithId } from "@/backend";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLanguage } from "@/i18n";
 import { motion } from "motion/react";
-
-const DAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 
 function getMonthDays(year: number, month: number) {
   const firstDay = new Date(year, month, 1).getDay();
@@ -17,6 +16,7 @@ interface ReviewPageProps {
 }
 
 export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
+  const { t, lang, translations } = useLanguage();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -53,13 +53,23 @@ export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
     });
 
   function formatMonthMinutes(m: number): string {
+    if (lang === "ja") {
+      if (m >= 60) {
+        const h = Math.floor(m / 60);
+        const rem = m % 60;
+        return rem > 0 ? `${h}時間${rem}分` : `${h}時間`;
+      }
+      return `${m}分`;
+    }
     if (m >= 60) {
       const h = Math.floor(m / 60);
       const rem = m % 60;
-      return rem > 0 ? `${h}時間${rem}分` : `${h}時間`;
+      return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
     }
-    return `${m}分`;
+    return `${m} min`;
   }
+
+  const dayLabels = translations[lang].dayLabels;
 
   return (
     <motion.div
@@ -72,7 +82,7 @@ export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
       <Card className="rounded-2xl shadow-card border-0">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-foreground">
-            {year}年{month + 1}月のまとめ
+            {translations[lang].reviewMonthSummary(year, month + 1)}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -81,7 +91,9 @@ export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
               className="bg-secondary rounded-xl p-4 text-center"
               data-ocid="review.month_minutes.card"
             >
-              <p className="text-xs text-muted-foreground mb-1">瞑想時間</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                {t("reviewMeditationTime")}
+              </p>
               <p className="text-2xl font-bold text-primary">
                 {formatMonthMinutes(monthMinutes)}
               </p>
@@ -90,22 +102,26 @@ export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
               className="bg-secondary rounded-xl p-4 text-center"
               data-ocid="review.month_sessions.card"
             >
-              <p className="text-xs text-muted-foreground mb-1">記録回数</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                {t("reviewSessionCount")}
+              </p>
               <p className="text-2xl font-bold text-primary">
                 {monthSessions}
-                <span className="text-sm font-normal text-muted-foreground ml-1">
-                  回
-                </span>
+                {t("reviewSessionUnit") && (
+                  <span className="text-sm font-normal text-muted-foreground ml-1">
+                    {t("reviewSessionUnit")}
+                  </span>
+                )}
               </p>
             </div>
           </div>
           <div className="mt-3 text-center">
             <p className="text-xs text-muted-foreground">
-              累計{" "}
+              {t("reviewTotalAccum")}{" "}
               <span className="text-primary font-semibold">
                 {Number(totalMinutes)}
               </span>{" "}
-              分
+              {t("reviewTotalUnit")}
             </p>
           </div>
         </CardContent>
@@ -118,13 +134,13 @@ export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
       >
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-foreground">
-            カレンダー
+            {t("reviewCalendar")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {/* Day headers */}
           <div className="grid grid-cols-7 mb-2">
-            {DAY_LABELS.map((d) => (
+            {dayLabels.map((d) => (
               <div
                 key={d}
                 className="text-center text-xs font-medium text-muted-foreground py-1"
@@ -179,7 +195,7 @@ export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
       >
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-foreground">
-            最近のメモ
+            {t("reviewMemos")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -190,10 +206,10 @@ export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
             >
               <p className="text-2xl mb-2">📝</p>
               <p className="text-sm text-muted-foreground">
-                まだメモがありません。
+                {t("reviewMemosEmpty")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                記録にメモを添えると、ここに表示されます。
+                {t("reviewMemosEmptyHint")}
               </p>
             </div>
           ) : (
@@ -211,7 +227,8 @@ export default function ReviewPage({ records, totalMinutes }: ReviewPageProps) {
                     <p className="text-xs font-semibold text-primary mb-1">
                       {item.record.date.slice(5).replace("-", "/")}
                       <span className="ml-2 font-normal text-muted-foreground">
-                        {Number(item.record.duration)}分
+                        {Number(item.record.duration)}
+                        {t("durationUnit")}
                       </span>
                     </p>
                     <p className="text-sm text-foreground leading-relaxed">

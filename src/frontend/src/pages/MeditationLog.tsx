@@ -15,6 +15,7 @@ import {
   useGetTreeState,
   useSetTreeState,
 } from "@/hooks/useQueries";
+import { useLanguage } from "@/i18n";
 import ReviewPage from "@/pages/ReviewPage";
 import { CalendarDays, Clock, Droplets, Loader2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -23,6 +24,7 @@ import { toast } from "sonner";
 
 const PERSONALITY_ORDER: TreePersonality[] = ["star", "foolish", "empress"];
 const TIMER_STORAGE_KEY = "meditationTimerState";
+const TREE_STATE_STORAGE_KEY = "meditationTreeState";
 
 type PersistedTimerState = {
   status: "running" | "paused";
@@ -95,6 +97,7 @@ function MeditationTimer({
 }: {
   onElapsedMinutes?: (minutes: number) => void;
 }) {
+  const { t } = useLanguage();
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [remaining, setRemaining] = useState(10 * 60);
@@ -117,33 +120,27 @@ function MeditationTimer({
     }
   }, []);
 
-  const startInterval = useCallback(
-    (onFinish?: () => void) => {
-      clearTimer();
-      intervalRef.current = setInterval(() => {
-        if (startTimeRef.current === null) return;
-        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        const newRemaining = Math.max(0, remainingAtStartRef.current - elapsed);
-        setRemaining(newRemaining);
-        if (newRemaining <= 0) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-          localStorage.removeItem(TIMER_STORAGE_KEY);
-          setStatus("finished");
-          playAlarm(audioCtxRef);
-          vibrate([100, 50, 100, 50, 100]);
-          elapsedMinutesRef.current = targetMinutesRef.current;
-          onElapsedMinutes?.(targetMinutesRef.current);
-          onFinish?.();
-        }
-      }, 1000);
-    },
-    [clearTimer, onElapsedMinutes],
-  );
+  const startInterval = useCallback(() => {
+    clearTimer();
+    intervalRef.current = setInterval(() => {
+      if (startTimeRef.current === null) return;
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const newRemaining = Math.max(0, remainingAtStartRef.current - elapsed);
+      setRemaining(newRemaining);
+      if (newRemaining === 0) {
+        clearTimer();
+        localStorage.removeItem(TIMER_STORAGE_KEY);
+        setStatus("finished");
+        playAlarm(audioCtxRef);
+        vibrate([100, 50, 100, 50, 100]);
+        elapsedMinutesRef.current = targetMinutesRef.current;
+        onElapsedMinutes?.(targetMinutesRef.current);
+      }
+    }, 500);
+  }, [clearTimer, onElapsedMinutes]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only
   useEffect(() => {
-    // Restore timer state from localStorage on mount
     const raw = localStorage.getItem(TIMER_STORAGE_KEY);
     if (!raw) return;
     try {
@@ -291,7 +288,7 @@ function MeditationTimer({
     <section>
       <div className="bg-card rounded-2xl shadow-card p-6">
         <h2 className="text-base font-semibold text-foreground mb-6">
-          瞑想タイマー
+          {t("timerTitle")}
         </h2>
         <div className="flex flex-col items-center gap-6">
           <div className="relative w-44 h-44">
@@ -300,7 +297,7 @@ function MeditationTimer({
               viewBox="0 0 100 100"
               aria-hidden="true"
             >
-              <title>タイマー進捗</title>
+              <title>{t("timerTitle")}</title>
               <circle
                 cx="50"
                 cy="50"
@@ -336,10 +333,10 @@ function MeditationTimer({
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {status === "idle"
-                      ? "準備中"
+                      ? t("timerReady")
                       : status === "running"
-                        ? "瞑想中"
-                        : "一時停止中"}
+                        ? t("timerRunning")
+                        : t("timerPaused")}
                   </span>
                 </>
               )}
@@ -355,7 +352,7 @@ function MeditationTimer({
                 exit={{ opacity: 0 }}
                 className="text-base font-medium text-primary text-center"
               >
-                お疲れさまでした 🙏
+                {t("timerDone")}
               </motion.p>
             ) : (
               <motion.div
@@ -371,7 +368,7 @@ function MeditationTimer({
                       htmlFor="timer-minutes"
                       className="text-sm text-muted-foreground whitespace-nowrap"
                     >
-                      時間（分）
+                      {t("timerDurationLabel")}
                     </Label>
                     <Input
                       id="timer-minutes"
@@ -394,7 +391,7 @@ function MeditationTimer({
                       className="rounded-xl px-6 bg-primary text-primary-foreground hover:bg-primary/90"
                       data-ocid="timer.primary_button"
                     >
-                      {status === "paused" ? "再開" : "開始"}
+                      {status === "paused" ? t("timerResume") : t("timerStart")}
                     </Button>
                   ) : (
                     <Button
@@ -403,7 +400,7 @@ function MeditationTimer({
                       className="rounded-xl px-6"
                       data-ocid="timer.secondary_button"
                     >
-                      一時停止
+                      {t("timerPause")}
                     </Button>
                   )}
                   {status !== "idle" && (
@@ -413,7 +410,7 @@ function MeditationTimer({
                       className="rounded-xl px-6 text-muted-foreground"
                       data-ocid="timer.cancel_button"
                     >
-                      リセット
+                      {t("timerReset")}
                     </Button>
                   )}
                 </div>
@@ -428,7 +425,7 @@ function MeditationTimer({
               className="rounded-xl px-6"
               data-ocid="timer.cancel_button"
             >
-              リセット
+              {t("timerReset")}
             </Button>
           )}
         </div>
@@ -476,6 +473,7 @@ function StatCard({
 }
 
 export default function MeditationLog() {
+  const { t, lang, setLang } = useLanguage();
   const today = getTodayStr();
   const [date, setDate] = useState(today);
   const [duration, setDuration] = useState("");
@@ -489,14 +487,39 @@ export default function MeditationLog() {
 
   const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
-  const { data: treeState, isLoading: treeStateLoading } = useGetTreeState();
+  const { data: treeState } = useGetTreeState();
   const addRecord = useAddRecord();
   const deleteRecord = useDeleteRecord();
   const setTreeState = useSetTreeState();
 
+  // On mount: restore personality from localStorage before backend arrives
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
+  useEffect(() => {
+    const raw = localStorage.getItem(TREE_STATE_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const cached = JSON.parse(raw);
+      if (cached.personality && personality === null) {
+        setPersonality(cached.personality);
+        setStayHere(cached.stayHere ?? false);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // Sync personality and stayHere from backend on load
   useEffect(() => {
     if (treeState) {
+      // Write to localStorage cache
+      localStorage.setItem(
+        TREE_STATE_STORAGE_KEY,
+        JSON.stringify({
+          personality: treeState.personality,
+          stayHere: treeState.stayHere,
+          cycleIndex: String(treeState.cycleIndex),
+        }),
+      );
       const p = treeState.personality;
       if (p === "star" || p === "foolish" || p === "empress") {
         setPersonality(p);
@@ -533,8 +556,8 @@ export default function MeditationLog() {
       } else {
         setLevelUpStage(stage);
         vibrate([80, 40, 80]);
-        const t = setTimeout(() => setLevelUpStage(null), 3000);
-        return () => clearTimeout(t);
+        const timer = setTimeout(() => setLevelUpStage(null), 3000);
+        return () => clearTimeout(timer);
       }
     }
     prevStageRef.current = stage;
@@ -597,7 +620,7 @@ export default function MeditationLog() {
     e.preventDefault();
     const dur = Number.parseInt(duration);
     if (!date || Number.isNaN(dur) || dur < 1) {
-      toast.error("日付と瞑想時間を入力してください");
+      toast.error(t("formErrorRequired"));
       return;
     }
     try {
@@ -608,35 +631,23 @@ export default function MeditationLog() {
         moodAfter: BigInt(3),
         memo,
       });
-      toast.success("記録を保存しました ✨");
+      toast.success(t("formSuccess"));
       vibrate(50);
       setDuration("");
       setMemo("");
       setDate(today);
     } catch {
-      toast.error("保存に失敗しました。もう一度お試しください。");
+      toast.error(t("formErrorSave"));
     }
   }
 
   async function handleDelete(id: bigint) {
     try {
       await deleteRecord.mutateAsync(id);
-      toast.success("記録を削除しました");
+      toast.success(t("deleteSuccess"));
     } catch {
-      toast.error("削除に失敗しました。");
+      toast.error(t("deleteError"));
     }
-  }
-
-  // Show loading while tree state is being fetched
-  if (treeStateLoading) {
-    return (
-      <div
-        className="min-h-screen bg-background flex items-center justify-center"
-        data-ocid="app.loading_state"
-      >
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
   }
 
   // Show personality select if not chosen yet
@@ -653,8 +664,19 @@ export default function MeditationLog() {
             <Droplets className="w-5 h-5 text-primary" />
           </div>
           <h1 className="text-lg font-semibold text-foreground tracking-tight">
-            Meditation Log
+            {t("appTitle")}
           </h1>
+          <button
+            type="button"
+            onClick={() => setLang(lang === "ja" ? "en" : "ja")}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-secondary"
+            data-ocid="header.lang.toggle"
+          >
+            <span className="text-muted-foreground">{t("langToggle")}:</span>
+            <span className="font-medium text-foreground ml-1">
+              {lang === "ja" ? "日本語" : "English"}
+            </span>
+          </button>
         </div>
       </header>
 
@@ -666,14 +688,14 @@ export default function MeditationLog() {
               className="flex-1 rounded-lg"
               data-ocid="main.record.tab"
             >
-              記録
+              {t("tabRecord")}
             </TabsTrigger>
             <TabsTrigger
               value="review"
               className="flex-1 rounded-lg"
               data-ocid="main.review.tab"
             >
-              振り返り
+              {t("tabReview")}
             </TabsTrigger>
           </TabsList>
 
@@ -686,15 +708,15 @@ export default function MeditationLog() {
               <StatCard
                 ocid="stats.total_time.card"
                 icon={<Clock className="w-5 h-5 text-primary" />}
-                label="合計瞑想時間"
+                label={t("statsTotalTime")}
                 value={formatDuration(totalMinutes)}
               />
               <StatCard
                 ocid="stats.days.card"
                 icon={<CalendarDays className="w-5 h-5 text-primary" />}
-                label="記録した日数"
+                label={t("statsDays")}
                 value={String(totalDays)}
-                unit="日"
+                unit={t("statsDaysUnit")}
               />
             </section>
 
@@ -703,7 +725,7 @@ export default function MeditationLog() {
               <div className="bg-card rounded-2xl shadow-card p-6 flex flex-col items-center gap-2">
                 <div className="w-full mb-2">
                   <h2 className="text-base font-semibold text-foreground">
-                    あなたの木
+                    {t("yourTree")}
                   </h2>
                 </div>
                 <PlantGrowth
@@ -721,13 +743,13 @@ export default function MeditationLog() {
             <section>
               <div className="bg-card rounded-2xl shadow-card p-6">
                 <h2 className="text-base font-semibold text-foreground mb-6">
-                  瞑想記録を追加
+                  {t("formTitle")}
                 </h2>
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="date" className="text-sm font-medium">
-                        日付
+                        {t("formDate")}
                       </Label>
                       <Input
                         id="date"
@@ -740,13 +762,13 @@ export default function MeditationLog() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="duration" className="text-sm font-medium">
-                        瞑想時間（分）
+                        {t("formDuration")}
                       </Label>
                       <Input
                         id="duration"
                         type="number"
                         min={1}
-                        placeholder="例: 10"
+                        placeholder={t("formDurationPlaceholder")}
                         value={duration}
                         onChange={(e) => setDuration(e.target.value)}
                         className="rounded-lg border-border"
@@ -757,11 +779,11 @@ export default function MeditationLog() {
 
                   <div className="space-y-2">
                     <Label htmlFor="memo" className="text-sm font-medium">
-                      メモ（任意）
+                      {t("formMemo")}
                     </Label>
                     <Textarea
                       id="memo"
-                      placeholder="今日の瞑想について、気づいたことなど…"
+                      placeholder={t("formMemoPlaceholder")}
                       value={memo}
                       onChange={(e) => setMemo(e.target.value)}
                       rows={3}
@@ -779,10 +801,10 @@ export default function MeditationLog() {
                     {addRecord.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        保存中…
+                        {t("formSaving")}
                       </>
                     ) : (
-                      "記録を保存する"
+                      t("formSubmit")
                     )}
                   </Button>
                 </form>
@@ -792,7 +814,7 @@ export default function MeditationLog() {
             {/* Records list */}
             <section>
               <h2 className="text-base font-semibold text-foreground mb-4">
-                過去の記録
+                {t("pastRecords")}
               </h2>
 
               {recordsLoading ? (
@@ -809,10 +831,10 @@ export default function MeditationLog() {
                 >
                   <p className="text-4xl mb-3">🌿</p>
                   <p className="text-muted-foreground text-sm">
-                    まだ記録がありません。
+                    {t("emptyStateTitle")}
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    最初の瞑想を記録しましょう。
+                    {t("emptyStateSubtitle")}
                   </p>
                 </div>
               ) : (
@@ -838,7 +860,9 @@ export default function MeditationLog() {
                           <div className="mt-2 bg-secondary rounded-lg px-2 py-1">
                             <p className="text-sm font-bold text-primary">
                               {Number(item.record.duration)}
-                              <span className="text-xs font-normal">分</span>
+                              <span className="text-xs font-normal">
+                                {t("durationUnit")}
+                              </span>
                             </p>
                           </div>
                         </div>
@@ -852,7 +876,7 @@ export default function MeditationLog() {
                             </p>
                           ) : (
                             <p className="text-sm text-muted-foreground/50 italic">
-                              メモなし
+                              {t("noMemo")}
                             </p>
                           )}
                         </div>
@@ -911,13 +935,13 @@ export default function MeditationLog() {
             <div className="bg-card border-2 border-primary rounded-3xl px-8 py-6 shadow-2xl text-center max-w-xs mx-4">
               <p className="text-3xl mb-2">✦</p>
               <p className="text-xl font-bold text-primary mb-1">
-                成長しました！
+                {t("levelUpTitle")}
               </p>
               <p className="text-base text-foreground">
-                段階 {levelUpStage} / 50
+                段階 {levelUpStage} {t("levelUpOf")}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                木が育っています 🌿
+                {t("levelUpSubtitle")}
               </p>
             </div>
           </motion.div>
@@ -961,10 +985,10 @@ export default function MeditationLog() {
                 🌱
               </motion.p>
               <p className="text-2xl font-semibold text-foreground mb-3 tracking-tight">
-                新しい旅が始まります
+                {t("cycleTransitionTitle")}
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                これまでの歩みは、次の木の礎となります。
+                {t("cycleTransitionBody")}
               </p>
             </motion.div>
           </motion.div>

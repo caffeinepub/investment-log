@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/i18n";
 import { AnimatePresence, motion } from "motion/react";
 
 interface CycleCompleteModalProps {
@@ -12,6 +13,8 @@ export default function CycleCompleteModal({
   onStayHere,
   onNextCycle,
 }: CycleCompleteModalProps) {
+  const { t } = useLanguage();
+
   return (
     <AnimatePresence>
       {open && (
@@ -38,10 +41,10 @@ export default function CycleCompleteModal({
               ✦
             </motion.p>
             <h2 className="text-xl font-bold text-foreground mb-3">
-              実がなりました
+              {t("cycleFruitTitle")}
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-8">
-              この木との旅が、ひとつの実を結びました。
+              {t("cycleFruitBody")}
             </p>
 
             <div className="flex flex-col gap-3">
@@ -50,7 +53,7 @@ export default function CycleCompleteModal({
                 className="w-full rounded-xl h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
                 data-ocid="cycle_complete.stay_button"
               >
-                もう少しここにいる
+                {t("cycleStayButton")}
               </Button>
               <Button
                 onClick={onNextCycle}
@@ -58,7 +61,7 @@ export default function CycleCompleteModal({
                 className="w-full rounded-xl h-11 font-medium"
                 data-ocid="cycle_complete.next_button"
               >
-                次の旅へ
+                {t("cycleNextButton")}
               </Button>
             </div>
           </motion.div>
