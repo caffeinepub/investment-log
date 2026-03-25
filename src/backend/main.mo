@@ -3,14 +3,12 @@ import Map "mo:core/Map";
 import Time "mo:core/Time";
 import Runtime "mo:core/Runtime";
 
-
-
 actor {
   type MeditationRecord = {
     date : Text;
     duration : Nat;
-    moodBefore : Nat; // 1-5 scale
-    moodAfter : Nat; // 1-5 scale
+    moodBefore : Nat;
+    moodAfter : Nat;
     memo : Text;
   };
 
@@ -19,13 +17,24 @@ actor {
     record : MeditationRecord;
   };
 
+  type TreeState = {
+    personality : Text; // "star" | "flow" | "empress" | "" (empty = not selected)
+    cycleIndex : Nat;
+    stayHere : Bool;
+    cycleCompleteShown : Bool;
+  };
+
   let records = Map.empty<Int, MeditationRecord>();
   var nextId = 1;
+
+  stable var treePersonality : Text = "";
+  stable var treeCycleIndex : Nat = 0;
+  stable var treeStayHere : Bool = false;
+  stable var treeCycleCompleteShown : Bool = false;
 
   public shared ({ caller }) func addRecord(date : Text, duration : Nat, moodBefore : Nat, moodAfter : Nat, memo : Text) : async Int {
     assert (moodBefore >= 1 and moodBefore <= 5);
     assert (moodAfter >= 1 and moodAfter <= 5);
-
     let id = nextId;
     nextId += 1;
     let record : MeditationRecord = {
@@ -56,5 +65,21 @@ actor {
       Runtime.trap("Record with id " # id.toText() # " does not exist. ");
     };
     records.remove(id);
+  };
+
+  public query func getTreeState() : async TreeState {
+    {
+      personality = treePersonality;
+      cycleIndex = treeCycleIndex;
+      stayHere = treeStayHere;
+      cycleCompleteShown = treeCycleCompleteShown;
+    };
+  };
+
+  public shared func setTreeState(personality : Text, cycleIndex : Nat, stayHere : Bool, cycleCompleteShown : Bool) : async () {
+    treePersonality := personality;
+    treeCycleIndex := cycleIndex;
+    treeStayHere := stayHere;
+    treeCycleCompleteShown := cycleCompleteShown;
   };
 };

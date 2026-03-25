@@ -11,6 +11,8 @@ import {
   useDeleteRecord,
   useGetAllRecords,
   useGetTotalMinutes,
+  useGetTreeState,
+  useSetTreeState,
 } from "@/hooks/useQueries";
 import { CalendarDays, Clock, Droplets, Loader2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -18,24 +20,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const PERSONALITY_ORDER: TreePersonality[] = ["star", "foolish", "empress"];
-
-function getPersonality(): TreePersonality | null {
-  const v = localStorage.getItem("meditation_tree_personality");
-  if (v === "star" || v === "foolish" || v === "empress") return v;
-  return null;
-}
-
-function getCycleIndex(): number {
-  return Number(localStorage.getItem("meditation_cycle_index") ?? 0);
-}
-
-function getStayHere(): boolean {
-  return localStorage.getItem("meditation_stay_here") === "true";
-}
-
-function getCycleCompleteShown(): boolean {
-  return localStorage.getItem("meditation_cycle_complete_shown") === "true";
-}
 
 function formatDuration(minutes: bigint): string {
   const m = Number(minutes);
@@ -402,18 +386,31 @@ export default function MeditationLog() {
   const [duration, setDuration] = useState("");
   const [memo, setMemo] = useState("");
 
-  // Personality / cycle state
-  const [personality, setPersonality] = useState<TreePersonality | null>(() =>
-    getPersonality(),
-  );
-  const [stayHere, setStayHere] = useState<boolean>(() => getStayHere());
+  // Personality / cycle state — synced from backend
+  const [personality, setPersonality] = useState<TreePersonality | null>(null);
+  const [stayHere, setStayHere] = useState<boolean>(false);
   const [cycleCompleteOpen, setCycleCompleteOpen] = useState(false);
   const [cycleTransition, setCycleTransition] = useState(false);
 
   const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
+  const { data: treeState, isLoading: treeStateLoading } = useGetTreeState();
   const addRecord = useAddRecord();
   const deleteRecord = useDeleteRecord();
+  const setTreeState = useSetTreeState();
+
+  // Sync personality and stayHere from backend on load
+  useEffect(() => {
+    if (treeState) {
+      const p = treeState.personality;
+      if (p === "star" || p === "foolish" || p === "empress") {
+        setPersonality(p);
+      } else {
+        setPersonality(null);
+      }
+      setStayHere(treeState.stayHere);
+    }
+  }, [treeState]);
 
   const totalDays = computeTotalDays(records);
   const totalMin = Number(totalMinutes);
@@ -426,9 +423,17 @@ export default function MeditationLog() {
   useEffect(() => {
     if (prevStageRef.current !== null && stage > prevStageRef.current) {
       if (stage === 50) {
-        if (!getCycleCompleteShown()) {
+        if (!treeState?.cycleCompleteShown) {
           setCycleCompleteOpen(true);
-          localStorage.setItem("meditation_cycle_complete_shown", "true");
+          // Mark cycleCompleteShown in backend
+          if (personality) {
+            setTreeState.mutate({
+              personality,
+              cycleIndex: BigInt(treeState ? Number(treeState.cycleIndex) : 0),
+              stayHere,
+              cycleCompleteShown: true,
+            });
+          }
         }
       } else {
         setLevelUpStage(stage);
@@ -437,31 +442,45 @@ export default function MeditationLog() {
       }
     }
     prevStageRef.current = stage;
-  }, [stage]);
+  }, [stage, treeState, personality, stayHere, setTreeState]);
 
-  function handleSelectPersonality(p: TreePersonality) {
-    localStorage.setItem("meditation_tree_personality", p);
-    localStorage.setItem("meditation_cycle_index", "0");
+  async function handleSelectPersonality(p: TreePersonality) {
     setPersonality(p);
+    await setTreeState.mutateAsync({
+      personality: p,
+      cycleIndex: BigInt(0),
+      stayHere: false,
+      cycleCompleteShown: false,
+    });
   }
 
-  function handleStayHere() {
-    localStorage.setItem("meditation_stay_here", "true");
+  async function handleStayHere() {
     setStayHere(true);
     setCycleCompleteOpen(false);
+    if (personality) {
+      await setTreeState.mutateAsync({
+        personality,
+        cycleIndex: BigInt(treeState ? Number(treeState.cycleIndex) : 0),
+        stayHere: true,
+        cycleCompleteShown: true,
+      });
+    }
   }
 
-  function handleNextCycle() {
+  async function handleNextCycle() {
     setCycleCompleteOpen(false);
     setCycleTransition(true);
+    const currentCycleIndex = treeState ? Number(treeState.cycleIndex) : 0;
+    const nextIndex = currentCycleIndex + 1;
+    const nextPersonality =
+      PERSONALITY_ORDER[nextIndex % PERSONALITY_ORDER.length];
+    await setTreeState.mutateAsync({
+      personality: nextPersonality,
+      cycleIndex: BigInt(nextIndex),
+      stayHere: false,
+      cycleCompleteShown: false,
+    });
     setTimeout(() => {
-      const nextIndex = getCycleIndex() + 1;
-      const nextPersonality =
-        PERSONALITY_ORDER[nextIndex % PERSONALITY_ORDER.length];
-      localStorage.setItem("meditation_cycle_index", String(nextIndex));
-      localStorage.setItem("meditation_tree_personality", nextPersonality);
-      localStorage.removeItem("meditation_stay_here");
-      localStorage.removeItem("meditation_cycle_complete_shown");
       setPersonality(nextPersonality);
       setStayHere(false);
       setCycleTransition(false);
@@ -511,7 +530,20 @@ export default function MeditationLog() {
     }
   }
 
-  if (!personality) {
+  // Show loading while tree state is being fetched
+  if (treeStateLoading) {
+    return (
+      <div
+        className="min-h-screen bg-background flex items-center justify-center"
+        data-ocid="app.loading_state"
+      >
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show personality select if not chosen yet
+  if (!personality || treeState?.personality === "") {
     return <PersonalitySelectScreen onSelect={handleSelectPersonality} />;
   }
 

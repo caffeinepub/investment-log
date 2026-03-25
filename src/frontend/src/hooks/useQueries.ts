@@ -1,6 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useActor } from "./useActor";
 
+// TreeState type (matches backend.d.ts; backend.ts is protected and doesn't export it yet)
+interface TreeState {
+  personality: string;
+  cycleIndex: bigint;
+  stayHere: boolean;
+  cycleCompleteShown: boolean;
+}
+
 // ---- Meditation Log hooks ----
 
 export function useGetAllRecords() {
@@ -65,6 +73,44 @@ export function useDeleteRecord() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["records"] });
       queryClient.invalidateQueries({ queryKey: ["totalMinutes"] });
+    },
+  });
+}
+
+export function useGetTreeState() {
+  const { actor, isFetching } = useActor();
+  return useQuery<TreeState | null>({
+    queryKey: ["treeState"],
+    queryFn: async () => {
+      if (!actor) return null;
+      // biome-ignore lint/suspicious/noExplicitAny: backend.ts is protected; method exists at runtime
+      return (actor as any).getTreeState() as Promise<TreeState>;
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetTreeState() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      personality: string;
+      cycleIndex: bigint;
+      stayHere: boolean;
+      cycleCompleteShown: boolean;
+    }) => {
+      if (!actor) throw new Error("Actor not ready");
+      // biome-ignore lint/suspicious/noExplicitAny: backend.ts is protected; method exists at runtime
+      return (actor as any).setTreeState(
+        args.personality,
+        args.cycleIndex,
+        args.stayHere,
+        args.cycleCompleteShown,
+      ) as Promise<void>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["treeState"] });
     },
   });
 }
