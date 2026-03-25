@@ -24,6 +24,12 @@ export interface TreeState {
     stayHere: boolean;
     cycleCompleteShown: boolean;
 }
+export interface FeedbackEntry {
+    id: bigint;
+    name: string;
+    message: string;
+    timestamp: bigint;
+}
 export interface backendInterface {
     addRecord(date: string, duration: bigint, moodBefore: bigint, moodAfter: bigint, memo: string): Promise<bigint>;
     deleteRecord(id: bigint): Promise<void>;
@@ -31,4 +37,8 @@ export interface backendInterface {
     getTotalMinutes(): Promise<bigint>;
     getTreeState(): Promise<TreeState>;
     setTreeState(personality: string, cycleIndex: bigint, stayHere: boolean, cycleCompleteShown: boolean): Promise<void>;
+    recordVisit(): Promise<bigint>;
+    getVisitCount(): Promise<bigint>;
+    submitFeedback(name: string, message: string): Promise<void>;
+    getAllFeedback(): Promise<Array<FeedbackEntry>>;
 }

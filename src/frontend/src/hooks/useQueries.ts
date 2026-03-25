@@ -169,6 +169,58 @@ export function useSetTreeState() {
   });
 }
 
+// ---- Visit & Feedback hooks ----
+
+export function useRecordVisit() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["recordVisit"],
+    queryFn: async () => {
+      if (!actor) return null;
+      return (actor as any).recordVisit();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+}
+
+export function useGetVisitCount() {
+  const { actor, isFetching } = useActor();
+  return useQuery<bigint>({
+    queryKey: ["visitCount"],
+    queryFn: async () => {
+      if (!actor) return BigInt(0);
+      return (actor as any).getVisitCount() as Promise<bigint>;
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetAllFeedback() {
+  const { actor, isFetching } = useActor();
+  return useQuery<any[]>({
+    queryKey: ["allFeedback"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return (actor as any).getAllFeedback() as Promise<any[]>;
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSubmitFeedback() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async (args: { name: string; message: string }) => {
+      if (!actor) throw new Error("Actor not ready");
+      return (actor as any).submitFeedback(
+        args.name,
+        args.message,
+      ) as Promise<void>;
+    },
+  });
+}
+
 // ---- Legacy stubs (kept for InvestmentLog.tsx compat) ----
 export const useGetInvestments = () =>
   useQuery<any[]>({ queryKey: ["investments"], queryFn: async () => [] });

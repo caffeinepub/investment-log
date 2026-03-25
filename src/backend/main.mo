@@ -18,10 +18,17 @@ actor {
   };
 
   type TreeState = {
-    personality : Text; // "star" | "flow" | "empress" | "" (empty = not selected)
+    personality : Text;
     cycleIndex : Nat;
     stayHere : Bool;
     cycleCompleteShown : Bool;
+  };
+
+  type FeedbackEntry = {
+    id : Int;
+    name : Text;
+    message : Text;
+    timestamp : Int;
   };
 
   let records = Map.empty<Int, MeditationRecord>();
@@ -31,6 +38,11 @@ actor {
   stable var treeCycleIndex : Nat = 0;
   stable var treeStayHere : Bool = false;
   stable var treeCycleCompleteShown : Bool = false;
+
+  stable var visitCount : Nat = 0;
+
+  let feedbacks = Map.empty<Int, FeedbackEntry>();
+  var nextFeedbackId = 1;
 
   public shared ({ caller }) func addRecord(date : Text, duration : Nat, moodBefore : Nat, moodAfter : Nat, memo : Text) : async Int {
     assert (moodBefore >= 1 and moodBefore <= 5);
@@ -81,5 +93,30 @@ actor {
     treeCycleIndex := cycleIndex;
     treeStayHere := stayHere;
     treeCycleCompleteShown := cycleCompleteShown;
+  };
+
+  public shared func recordVisit() : async Nat {
+    visitCount += 1;
+    visitCount;
+  };
+
+  public query func getVisitCount() : async Nat {
+    visitCount;
+  };
+
+  public shared func submitFeedback(name : Text, message : Text) : async () {
+    let id = nextFeedbackId;
+    nextFeedbackId += 1;
+    let entry : FeedbackEntry = {
+      id;
+      name;
+      message;
+      timestamp = Time.now();
+    };
+    feedbacks.add(id, entry);
+  };
+
+  public query func getAllFeedback() : async [FeedbackEntry] {
+    feedbacks.toArray().map(func((_, entry)) { entry });
   };
 };

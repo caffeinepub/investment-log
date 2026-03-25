@@ -88,6 +88,18 @@ const translations = {
     dayLabels: ["日", "月", "火", "水", "木", "金", "土"],
 
     langToggle: "言語",
+
+    feedbackButton: "感想を送る",
+    feedbackName: "お名前（任意）",
+    feedbackMessage: "ひとことどうぞ",
+    feedbackSend: "送る",
+    feedbackSuccess: "届きました 🌿",
+    feedbackSending: "送信中…",
+
+    adminVisitors: "届いた人",
+    adminFeedback: "フィードバック",
+    adminAnonymous: "匿名",
+    adminNoFeedback: "まだ届いていません",
   },
   en: {
     appTitle: "Meditation Log",
@@ -174,6 +186,18 @@ const translations = {
     dayLabels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
 
     langToggle: "Language",
+
+    feedbackButton: "Send feedback",
+    feedbackName: "Name (optional)",
+    feedbackMessage: "Your thoughts",
+    feedbackSend: "Send",
+    feedbackSuccess: "Received 🌿",
+    feedbackSending: "Sending…",
+
+    adminVisitors: "Visitors",
+    adminFeedback: "Feedback",
+    adminAnonymous: "Anonymous",
+    adminNoFeedback: "None yet",
   },
 } as const;
 

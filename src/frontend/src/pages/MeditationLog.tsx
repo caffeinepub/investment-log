@@ -6,6 +6,13 @@ import { WhisperBubble } from "@/components/WhisperBubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -15,6 +22,7 @@ import {
   useGetTotalMinutes,
   useGetTreeState,
   useSetTreeState,
+  useSubmitFeedback,
 } from "@/hooks/useQueries";
 import { useLanguage } from "@/i18n";
 import { rollWhisper } from "@/lib/whisperPhrases";
@@ -103,12 +111,7 @@ function MeditationTimer({
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [remaining, setRemaining] = useState(10 * 60);
-  const [showFlash, setShowFlash] = useState(false);
 
-  const triggerFlash = useCallback(() => {
-    setShowFlash(true);
-    setTimeout(() => setShowFlash(false), 2000);
-  }, []);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -141,12 +144,11 @@ function MeditationTimer({
         setStatus("finished");
         playAlarm(audioCtxRef);
         vibrate([100, 50, 100, 50, 100]);
-        triggerFlash();
         elapsedMinutesRef.current = targetMinutesRef.current;
         onElapsedMinutes?.(targetMinutesRef.current);
       }
     }, 500);
-  }, [clearTimer, onElapsedMinutes, triggerFlash]);
+  }, [clearTimer, onElapsedMinutes]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only
   useEffect(() => {
@@ -172,7 +174,6 @@ function MeditationTimer({
           setRemaining(0);
           playAlarm(audioCtxRef);
           vibrate([100, 50, 100, 50, 100]);
-          triggerFlash();
           onElapsedMinutes?.(saved.targetMinutes);
         }
       } else if (saved.status === "paused") {
@@ -214,7 +215,6 @@ function MeditationTimer({
           setStatus("finished");
           playAlarm(audioCtxRef);
           vibrate([100, 50, 100, 50, 100]);
-          triggerFlash();
           elapsedMinutesRef.current = targetMinutesRef.current;
           onElapsedMinutes?.(targetMinutesRef.current);
         }
@@ -224,7 +224,7 @@ function MeditationTimer({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [clearTimer, onElapsedMinutes, triggerFlash]);
+  }, [clearTimer, onElapsedMinutes]);
 
   function handleStart() {
     let initialRemaining: number;
@@ -296,185 +296,152 @@ function MeditationTimer({
   const ss = String(remaining % 60).padStart(2, "0");
 
   return (
-    <>
-      {/* Timer completion flash overlay */}
-      <AnimatePresence>
-        {showFlash && (
-          <motion.div
-            key="flash"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.85, 0.6, 0] }}
-            transition={{ duration: 2, times: [0, 0.1, 0.5, 1] }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary pointer-events-none"
-          >
-            <motion.span
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="text-7xl mb-4"
+    <section>
+      <div className="bg-card rounded-2xl shadow-card p-6">
+        <h2 className="text-base font-semibold text-foreground mb-6">
+          {t("timerTitle")}
+        </h2>
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative w-44 h-44">
+            <svg
+              className="w-full h-full -rotate-90"
+              viewBox="0 0 100 100"
+              aria-hidden="true"
             >
-              🙏
-            </motion.span>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-2xl font-semibold text-primary-foreground"
-            >
-              {t("timerDone")}
-            </motion.p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <section>
-        <div className="bg-card rounded-2xl shadow-card p-6">
-          <h2 className="text-base font-semibold text-foreground mb-6">
-            {t("timerTitle")}
-          </h2>
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative w-44 h-44">
-              <svg
-                className="w-full h-full -rotate-90"
-                viewBox="0 0 100 100"
-                aria-hidden="true"
-              >
-                <title>{t("timerTitle")}</title>
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="44"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="6"
-                  className="text-secondary"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="44"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  className="text-primary transition-all duration-500"
-                  strokeDasharray={`${2 * Math.PI * 44}`}
-                  strokeDashoffset={`${2 * Math.PI * 44 * (1 - progress / 100)}`}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                {status === "finished" ? (
-                  <span className="text-4xl">🙏</span>
-                ) : (
-                  <>
-                    <span
-                      className="text-5xl font-bold text-primary leading-none tracking-tight"
-                      data-ocid="timer.display"
-                    >
-                      {mm}:{ss}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {status === "idle"
-                        ? t("timerReady")
-                        : status === "running"
-                          ? t("timerRunning")
-                          : t("timerPaused")}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <AnimatePresence mode="wait">
+              <title>{t("timerTitle")}</title>
+              <circle
+                cx="50"
+                cy="50"
+                r="44"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                className="text-secondary"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="44"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                className="text-primary transition-all duration-500"
+                strokeDasharray={`${2 * Math.PI * 44}`}
+                strokeDashoffset={`${2 * Math.PI * 44 * (1 - progress / 100)}`}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
               {status === "finished" ? (
-                <motion.p
-                  key="done"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="text-base font-medium text-primary text-center"
-                >
-                  {t("timerDone")}
-                </motion.p>
+                <span className="text-4xl">🙏</span>
               ) : (
-                <motion.div
-                  key="controls"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="w-full space-y-4"
-                >
-                  {status === "idle" && (
-                    <div className="flex items-center justify-center gap-3">
-                      <Label
-                        htmlFor="timer-minutes"
-                        className="text-sm text-muted-foreground whitespace-nowrap"
-                      >
-                        {t("timerDurationLabel")}
-                      </Label>
-                      <Input
-                        id="timer-minutes"
-                        type="number"
-                        min={1}
-                        max={120}
-                        value={targetMinutes}
-                        onChange={(e) =>
-                          handleTargetChange(Number(e.target.value))
-                        }
-                        className="w-20 text-center rounded-lg border-border"
-                        data-ocid="timer.duration.input"
-                      />
-                    </div>
-                  )}
-                  <div className="flex gap-3 justify-center">
-                    {status !== "running" ? (
-                      <Button
-                        onClick={handleStart}
-                        className="rounded-xl px-6 bg-primary text-primary-foreground hover:bg-primary/90"
-                        data-ocid="timer.primary_button"
-                      >
-                        {status === "paused"
-                          ? t("timerResume")
-                          : t("timerStart")}
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={handlePause}
-                        variant="outline"
-                        className="rounded-xl px-6"
-                        data-ocid="timer.secondary_button"
-                      >
-                        {t("timerPause")}
-                      </Button>
-                    )}
-                    {status !== "idle" && (
-                      <Button
-                        onClick={handleReset}
-                        variant="ghost"
-                        className="rounded-xl px-6 text-muted-foreground"
-                        data-ocid="timer.cancel_button"
-                      >
-                        {t("timerReset")}
-                      </Button>
-                    )}
-                  </div>
-                </motion.div>
+                <>
+                  <span
+                    className="text-5xl font-bold text-primary leading-none tracking-tight"
+                    data-ocid="timer.display"
+                  >
+                    {mm}:{ss}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {status === "idle"
+                      ? t("timerReady")
+                      : status === "running"
+                        ? t("timerRunning")
+                        : t("timerPaused")}
+                  </span>
+                </>
               )}
-            </AnimatePresence>
-
-            {status === "finished" && (
-              <Button
-                onClick={handleReset}
-                variant="outline"
-                className="rounded-xl px-6"
-                data-ocid="timer.cancel_button"
-              >
-                {t("timerReset")}
-              </Button>
-            )}
+            </div>
           </div>
+
+          <AnimatePresence mode="wait">
+            {status === "finished" ? (
+              <motion.p
+                key="done"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-base font-medium text-primary text-center"
+              >
+                {t("timerDone")}
+              </motion.p>
+            ) : (
+              <motion.div
+                key="controls"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="w-full space-y-4"
+              >
+                {status === "idle" && (
+                  <div className="flex items-center justify-center gap-3">
+                    <Label
+                      htmlFor="timer-minutes"
+                      className="text-sm text-muted-foreground whitespace-nowrap"
+                    >
+                      {t("timerDurationLabel")}
+                    </Label>
+                    <Input
+                      id="timer-minutes"
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={targetMinutes}
+                      onChange={(e) =>
+                        handleTargetChange(Number(e.target.value))
+                      }
+                      className="w-20 text-center rounded-lg border-border"
+                      data-ocid="timer.duration.input"
+                    />
+                  </div>
+                )}
+                <div className="flex gap-3 justify-center">
+                  {status !== "running" ? (
+                    <Button
+                      onClick={handleStart}
+                      className="rounded-xl px-6 bg-primary text-primary-foreground hover:bg-primary/90"
+                      data-ocid="timer.primary_button"
+                    >
+                      {status === "paused" ? t("timerResume") : t("timerStart")}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handlePause}
+                      variant="outline"
+                      className="rounded-xl px-6"
+                      data-ocid="timer.secondary_button"
+                    >
+                      {t("timerPause")}
+                    </Button>
+                  )}
+                  {status !== "idle" && (
+                    <Button
+                      onClick={handleReset}
+                      variant="ghost"
+                      className="rounded-xl px-6 text-muted-foreground"
+                      data-ocid="timer.cancel_button"
+                    >
+                      {t("timerReset")}
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {status === "finished" && (
+            <Button
+              onClick={handleReset}
+              variant="outline"
+              className="rounded-xl px-6"
+              data-ocid="timer.cancel_button"
+            >
+              {t("timerReset")}
+            </Button>
+          )}
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }
 
@@ -513,6 +480,84 @@ function StatCard({
         </p>
       </div>
     </div>
+  );
+}
+
+function FeedbackSheet() {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const submitFeedback = useSubmitFeedback();
+
+  async function handleSubmit() {
+    if (!message.trim()) return;
+    try {
+      await submitFeedback.mutateAsync({
+        name: name.trim(),
+        message: message.trim(),
+      });
+      toast.success(t("feedbackSuccess"));
+      setOpen(false);
+      setName("");
+      setMessage("");
+    } catch {
+      toast.error("Error");
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          data-ocid="feedback.open_modal_button"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+        >
+          {t("feedbackButton")}
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+        <SheetHeader className="mb-4">
+          <SheetTitle className="text-sm font-medium text-left">
+            {t("feedbackButton")}
+          </SheetTitle>
+        </SheetHeader>
+        <div className="space-y-3">
+          <Input
+            data-ocid="feedback.input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("feedbackName")}
+            className="text-sm"
+          />
+          <Textarea
+            data-ocid="feedback.textarea"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={t("feedbackMessage")}
+            rows={4}
+            className="text-sm resize-none"
+          />
+          <Button
+            data-ocid="feedback.submit_button"
+            onClick={handleSubmit}
+            disabled={!message.trim() || submitFeedback.isPending}
+            size="sm"
+            className="w-full"
+          >
+            {submitFeedback.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                {t("feedbackSending")}
+              </>
+            ) : (
+              t("feedbackSend")
+            )}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -582,6 +627,14 @@ export default function MeditationLog() {
   // Level-up celebration
   const prevStageRef = useRef<number | null>(null);
   const [levelUpStage, setLevelUpStage] = useState<number | null>(null);
+  const levelUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup level-up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (prevStageRef.current !== null && stage > prevStageRef.current) {
@@ -601,8 +654,8 @@ export default function MeditationLog() {
       } else {
         setLevelUpStage(stage);
         vibrate([80, 40, 80]);
-        const timer = setTimeout(() => setLevelUpStage(null), 3000);
-        return () => clearTimeout(timer);
+        if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+        levelUpTimerRef.current = setTimeout(() => setLevelUpStage(null), 3500);
       }
     }
     prevStageRef.current = stage;
@@ -963,16 +1016,19 @@ export default function MeditationLog() {
       </main>
 
       {/* Footer */}
-      <footer className="text-center py-8 text-xs text-muted-foreground">
-        © {new Date().getFullYear()}. Built with love using{" "}
-        <a
-          href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-2 hover:text-foreground transition-colors"
-        >
-          caffeine.ai
-        </a>
+      <footer className="text-center py-8 text-xs text-muted-foreground space-y-3">
+        <FeedbackSheet />
+        <div>
+          © {new Date().getFullYear()}. Built with love using{" "}
+          <a
+            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
+            caffeine.ai
+          </a>
+        </div>
       </footer>
 
       {/* Level-up celebration overlay */}
