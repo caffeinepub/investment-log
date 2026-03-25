@@ -1,27 +1,39 @@
 # Meditation Log
 
 ## Current State
-- Meditation records are stored on-chain in the Motoko backend canister (addRecord, getAllRecordsWithIds, deleteRecord, getTotalMinutes)
-- Tree state (personality, cycleIndex, stayHere, cycleCompleteShown) is stored in localStorage — at risk of data loss if browser data is cleared
+- MeditationLog.tsx: main page with stats, plant, timer, add form, records list
+- PersonalitySelectScreen.tsx: initial personality selection with unique sprout SVGs
+- CycleCompleteModal.tsx: modal shown when stage 50 reached
+- PlantGrowth.tsx: SVG tree visualization (50 stages, 3 personalities)
+- Backend: addRecord, deleteRecord, getAllRecordsWithIds, getTotalMinutes, getTreeState, setTreeState
+- Data stored on-chain via Motoko backend
+- Timer persists across page reloads via localStorage
 
 ## Requested Changes (Diff)
 
 ### Add
-- Backend: `getTreeState` query returning the current tree state
-- Backend: `setTreeState` update that persists personality, cycleIndex, stayHere, cycleCompleteShown to stable storage
+- **振り返り画面 (Review Tab)**: A new tab/section showing:
+  - Monthly summary: total minutes this month, number of sessions
+  - Simple calendar grid showing which days had meditation (current month, dots on days with records)
+  - Past memos: scrollable list of records that have memos, showing date + memo text
+- **ハプティクス (Haptics)**: Call `navigator.vibrate()` on:
+  - Record saved successfully (short pulse: 50ms)
+  - Stage level-up (pattern: [80, 40, 80])
+  - Timer finished (pattern: [100, 50, 100, 50, 100])
+- **オンボーディング改善**: On PersonalitySelectScreen, add a brief intro sequence:
+  - Before showing the 3 sprouts, show a short welcome message (2-3 lines) with a gentle fade-in
+  - Add a subtle pulsing animation to the selected card on hover
+  - After user taps a sprout, show a brief confirmation message ("〇〇の旅が始まります") before transitioning
 
 ### Modify
-- Frontend MeditationLog.tsx: replace all localStorage reads/writes for tree state with backend calls
-- On app load, fetch tree state from backend instead of localStorage
-- On personality select / cycle advance / stay here, call setTreeState instead of localStorage
+- MeditationLog.tsx: Add tab navigation (「記録」and「振り返り」tabs) to switch between main view and review view
+- PersonalitySelectScreen.tsx: Add intro message and post-selection confirmation animation
 
 ### Remove
-- All localStorage.getItem/setItem calls related to tree state (meditation_tree_personality, meditation_cycle_index, meditation_stay_here, meditation_cycle_complete_shown)
+- Nothing
 
 ## Implementation Plan
-1. Add TreeState type and stable var to Motoko backend
-2. Add getTreeState query and setTreeState update functions
-3. Regenerate backend.d.ts bindings
-4. Update MeditationLog.tsx to load tree state from backend on mount
-5. Replace all localStorage tree state writes with setTreeState backend calls
-6. Handle loading state while tree state is fetching (show loading spinner instead of personality select)
+1. Create `src/frontend/src/pages/ReviewPage.tsx` - the review/retrospective view component
+2. Modify `MeditationLog.tsx` to add tab navigation between main view and review view
+3. Modify `PersonalitySelectScreen.tsx` to add onboarding intro + post-selection confirmation
+4. Add haptic feedback utility function and integrate into: record save, level-up, timer finish

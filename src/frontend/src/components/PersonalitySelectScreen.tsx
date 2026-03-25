@@ -1,4 +1,5 @@
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 import type { TreePersonality } from "./PlantGrowth";
 
 const PERSONALITIES: {
@@ -226,59 +227,169 @@ interface PersonalitySelectScreenProps {
   onSelect: (personality: TreePersonality) => void;
 }
 
+type Phase = "intro" | "select" | "confirm";
+
 export default function PersonalitySelectScreen({
   onSelect,
 }: PersonalitySelectScreenProps) {
-  return (
-    <motion.div
-      className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.6 }}
-    >
-      <div className="max-w-lg w-full text-center mb-10">
-        <motion.h1
-          className="text-2xl font-semibold text-foreground mb-3 tracking-tight"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          あなたの木を選んでください
-        </motion.h1>
-        <motion.p
-          className="text-sm text-muted-foreground leading-relaxed"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          最初の一本。これがあなたの旅の始まりです。
-        </motion.p>
-      </div>
+  const [phase, setPhase] = useState<Phase>("intro");
+  const [pending, setPending] = useState<TreePersonality | null>(null);
 
-      <div className="grid grid-cols-3 gap-4 w-full max-w-lg">
-        {PERSONALITIES.map((p, i) => (
-          <motion.button
-            key={p.id}
-            type="button"
-            data-ocid={`personality_select.${p.id}.button`}
-            onClick={() => onSelect(p.id)}
-            className="bg-card rounded-2xl shadow-card p-4 flex flex-col items-center gap-3 hover:shadow-md transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+  function handleSproutClick(id: TreePersonality) {
+    setPending(id);
+    setPhase("confirm");
+    // Auto-transition after 1.5s
+    setTimeout(() => {
+      onSelect(id);
+    }, 1500);
+  }
+
+  const pendingPersonality = PERSONALITIES.find((p) => p.id === pending);
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
+      <AnimatePresence mode="wait">
+        {phase === "intro" && (
+          <motion.div
+            key="intro"
+            className="text-center max-w-sm"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 + i * 0.1, duration: 0.4 }}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.5 }}
           >
-            <SproutForPersonality id={p.id} />
-            <div className="text-center">
-              <p className="text-sm font-semibold text-foreground">{p.name}</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-snug">
-                {p.description}
-              </p>
+            <motion.p
+              className="text-4xl font-semibold text-foreground mb-6 tracking-tight"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              ようこそ
+            </motion.p>
+            <motion.p
+              className="text-sm text-muted-foreground mb-2 leading-relaxed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              瞑想を続けると、あなただけの木が育ちます。
+            </motion.p>
+            <motion.p
+              className="text-sm text-muted-foreground mb-10 leading-relaxed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+            >
+              最初の一本を選んでください。
+            </motion.p>
+            <motion.button
+              type="button"
+              data-ocid="onboarding.next.button"
+              onClick={() => setPhase("select")}
+              className="text-sm text-primary underline underline-offset-4 hover:opacity-70 transition-opacity"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.1 }}
+            >
+              次へ
+            </motion.button>
+          </motion.div>
+        )}
+
+        {phase === "select" && (
+          <motion.div
+            key="select"
+            className="w-full max-w-lg"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.45 }}
+          >
+            <div className="text-center mb-8">
+              <motion.h1
+                className="text-2xl font-semibold text-foreground mb-2 tracking-tight"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+              >
+                あなたの木を選んでください
+              </motion.h1>
+              <motion.p
+                className="text-sm text-muted-foreground"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                最初の一本。これがあなたの旅の始まりです。
+              </motion.p>
             </div>
-          </motion.button>
-        ))}
-      </div>
-    </motion.div>
+
+            <div className="grid grid-cols-3 gap-4">
+              {PERSONALITIES.map((p, i) => (
+                <motion.button
+                  key={p.id}
+                  type="button"
+                  data-ocid={`personality_select.${p.id}.button`}
+                  onClick={() => handleSproutClick(p.id)}
+                  className="bg-card rounded-2xl shadow-card p-4 flex flex-col items-center gap-3 hover:shadow-md transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.1, duration: 0.4 }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <SproutForPersonality id={p.id} />
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-foreground">
+                      {p.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                      {p.description}
+                    </p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {phase === "confirm" && pendingPersonality && (
+          <motion.div
+            key="confirm"
+            className="text-center max-w-sm"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            data-ocid="onboarding.confirm.panel"
+          >
+            <motion.div
+              className="mb-6"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+            >
+              <SproutForPersonality id={pendingPersonality.id} />
+            </motion.div>
+            <motion.p
+              className="text-xl font-semibold text-foreground mb-2 tracking-tight"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              {pendingPersonality.name}との旅が始まります
+            </motion.p>
+            <motion.p
+              className="text-sm text-muted-foreground"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              大切に育てましょう。
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
