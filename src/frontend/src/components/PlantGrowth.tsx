@@ -10,31 +10,31 @@ interface PlantGrowthProps {
 
 const C = {
   star: {
-    trunk: "hsl(220,10%,72%)",
-    trunkDark: "hsl(220,10%,60%)",
-    leaf: "hsl(162,35%,68%)",
-    leafHL: "hsl(162,35%,82%)",
-    fruit: "hsl(48,90%,72%)",
-    flower: "hsl(200,60%,80%)",
+    trunk: "hsl(220,8%,75%)",
+    trunkDark: "hsl(220,8%,60%)",
+    leaf: "hsl(162,40%,65%)",
+    leafHL: "hsl(162,40%,82%)",
+    fruit: "hsl(48,90%,75%)",
+    flower: "hsl(195,55%,82%)",
     flowerCenter: "hsl(48,95%,72%)",
   },
   foolish: {
-    trunk: "hsl(18,38%,40%)",
-    trunkDark: "hsl(18,38%,30%)",
-    leaf: "hsl(78,25%,46%)",
-    leafHL: "hsl(78,25%,62%)",
-    fruit: "hsl(36,75%,55%)",
-    flower: "hsl(30,70%,75%)",
+    trunk: "hsl(18,42%,42%)",
+    trunkDark: "hsl(18,42%,30%)",
+    leaf: "hsl(78,28%,44%)",
+    leafHL: "hsl(78,28%,62%)",
+    fruit: "hsl(36,80%,58%)",
+    flower: "hsl(30,72%,74%)",
     flowerCenter: "hsl(48,95%,72%)",
   },
   empress: {
-    trunk: "hsl(218,52%,26%)",
-    trunkDark: "hsl(218,52%,18%)",
-    leaf: "hsl(158,45%,35%)",
-    leafHL: "hsl(158,40%,52%)",
-    fruit: "hsl(340,60%,45%)",
-    flower: "hsl(300,40%,75%)",
-    flowerCenter: "hsl(300,50%,55%)",
+    trunk: "hsl(218,55%,28%)",
+    trunkDark: "hsl(218,55%,18%)",
+    leaf: "hsl(158,48%,33%)",
+    leafHL: "hsl(158,45%,54%)",
+    fruit: "hsl(340,65%,48%)",
+    flower: "hsl(300,42%,72%)",
+    flowerCenter: "hsl(300,52%,52%)",
   },
 };
 
@@ -42,6 +42,40 @@ type Colors = typeof C.star;
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * Math.min(Math.max(t, 0), 1);
+}
+
+// Persistent glowing apex dot for Star personality
+function ApexGlow({ x, y, stage }: { x: number; y: number; stage: number }) {
+  const r = 2.5 + Math.min(stage * 0.08, 2.5);
+  const haloR = r + 3 + Math.min(stage * 0.06, 3);
+  return (
+    <g>
+      <motion.circle
+        cx={x}
+        cy={y}
+        r={haloR}
+        fill="hsl(52,90%,75%)"
+        animate={{ opacity: [0, 0.25, 0] }}
+        transition={{
+          duration: 2,
+          repeat: Number.POSITIVE_INFINITY,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.circle
+        cx={x}
+        cy={y}
+        r={r}
+        fill="hsl(52,90%,78%)"
+        animate={{ opacity: [0.3, 0.75, 0.3] }}
+        transition={{
+          duration: 2,
+          repeat: Number.POSITIVE_INFINITY,
+          ease: "easeInOut",
+        }}
+      />
+    </g>
+  );
 }
 
 function Sparkle({
@@ -275,7 +309,7 @@ function BudFlowerFruit({
   );
 }
 
-// ── STAR TREE ────────────────────────────────────────────────────────────────
+// STAR TREE — Tarot "The Star": hope, light, intuition, symmetry, reaching upward
 function StarTree({
   stage,
   colors,
@@ -287,64 +321,66 @@ function StarTree({
   const p4 = stage >= 39 ? Math.min((stage - 39) / 11, 1) : 0;
 
   const baseY = 245;
-  // Slightly right of center
-  const trunkBaseX = 105;
-  const trunkH = lerp(5, 90, p1 * 0.6 + p2 * 0.25 + p3 * 0.1 + p4 * 0.05);
-  // Phase 4: top leans right
-  const trunkTopX = trunkBaseX + p4 * 5;
+  const trunkBaseX = 103;
+  const trunkH = lerp(6, 92, p1 * 0.55 + p2 * 0.28 + p3 * 0.12 + p4 * 0.05);
+  const trunkTopX = trunkBaseX + p3 * 3 + p4 * 4;
   const trunkTopY = baseY - trunkH;
-  const trunkW = 3 + p1 * 2 + p2 * 1;
+  const trunkW = 2.5 + p1 * 2 + p2 * 0.8;
 
   const trunkPath = [
     `M ${trunkBaseX - trunkW} ${baseY}`,
-    `C ${trunkBaseX - trunkW} ${baseY - trunkH * 0.4} ${trunkTopX - trunkW * 0.6} ${trunkTopY + 10} ${trunkTopX - trunkW * 0.5} ${trunkTopY}`,
-    `L ${trunkTopX + trunkW * 0.5} ${trunkTopY}`,
-    `C ${trunkTopX + trunkW * 0.6} ${trunkTopY + 10} ${trunkBaseX + trunkW} ${baseY - trunkH * 0.4} ${trunkBaseX + trunkW} ${baseY}`,
+    `C ${trunkBaseX - trunkW * 0.8} ${baseY - trunkH * 0.35} ${trunkTopX - trunkW * 0.6} ${trunkTopY + 8} ${trunkTopX - trunkW * 0.4} ${trunkTopY}`,
+    `L ${trunkTopX + trunkW * 0.4} ${trunkTopY}`,
+    `C ${trunkTopX + trunkW * 0.6} ${trunkTopY + 8} ${trunkBaseX + trunkW * 0.8} ${baseY - trunkH * 0.35} ${trunkBaseX + trunkW} ${baseY}`,
     "Z",
   ].join(" ");
 
   const lrx = 10;
-  const lry = 7.5;
+  const lry = 7;
+  const apexX = trunkTopX;
+  const apexY = trunkTopY - 6;
 
-  // Upper branch roots
-  const branchRootY = trunkTopY + trunkH * 0.15;
+  const branchRootY = trunkTopY + trunkH * 0.12;
+  const bLx = lerp(trunkTopX, trunkTopX - 30, p2);
+  const bLy = lerp(branchRootY, branchRootY - 35, p2);
+  const bRx = lerp(trunkTopX, trunkTopX + 27, p2);
+  const bRy = lerp(branchRootY, branchRootY - 30, p2);
+  const branchW = 2 + p1 * 1.2;
 
-  // Phase 2: upward V branches
-  const bL2x = lerp(trunkTopX, trunkTopX - 28, p2);
-  const bL2y = lerp(branchRootY, branchRootY - 30, p2);
-  const bR2x = lerp(trunkTopX, trunkTopX + 24, p2);
-  const bR2y = lerp(branchRootY, branchRootY - 24, p2);
-  const branchW2 = 2 + p1 * 1.5;
+  const bLLx = bLx - 14 * p3;
+  const bLLy = bLy - 22 * p3;
+  const bLRx = bLx + 12 * p3;
+  const bLRy = bLy - 24 * p3;
+  const bRLx = bRx + 12 * p3;
+  const bRLy = bRy - 20 * p3;
+  const bRRx = bRx - 10 * p3;
+  const bRRy = bRy - 24 * p3;
+  const subW = 1.4 + p2 * 0.7;
 
-  // Phase 3: sub-branches (more upward)
-  const bLL3x = bL2x - 16 * p3;
-  const bLL3y = bL2y - 20 * p3;
-  const bLR3x = bL2x + 10 * p3;
-  const bLR3y = bL2y - 22 * p3;
-  const bRL3x = bR2x + 14 * p3;
-  const bRL3y = bR2y - 18 * p3;
-  const branchW3 = 1.5 + p2 * 0.8;
-
-  // Phase 4: top slightly right
   const budX = trunkTopX + p4 * 4;
-  const budY = trunkTopY - 8;
+  const budY = trunkTopY - 10;
 
   return (
     <g>
-      {/* Seedling dot */}
       {stage === 0 && (
-        <motion.circle
-          cx={trunkBaseX}
-          cy={baseY - 4}
-          r={3}
-          fill={colors.leaf}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <motion.g
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-        />
+        >
+          <line
+            x1={trunkBaseX}
+            y1={baseY}
+            x2={trunkBaseX}
+            y2={baseY - 14}
+            stroke={colors.trunk}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+          />
+          <ApexGlow x={trunkBaseX} y={baseY - 16} stage={0} />
+        </motion.g>
       )}
 
-      {/* Trunk */}
       {stage >= 1 && (
         <motion.path
           d={trunkPath}
@@ -355,50 +391,72 @@ function StarTree({
         />
       )}
 
-      {/* Phase 1: tiny leaves at top */}
-      {stage >= 3 && (
+      {stage >= 1 && <ApexGlow x={apexX} y={apexY} stage={stage} />}
+
+      {stage >= 2 && (
         <Leaf
           cx={trunkTopX + 8}
-          cy={trunkTopY - 4}
-          rx={lrx * 0.7}
-          ry={lry * 0.7}
-          angle={20}
+          cy={trunkTopY - 3}
+          rx={lrx * 0.65}
+          ry={lry * 0.65}
+          angle={22}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 3 && (
+        <Leaf
+          cx={trunkTopX - 7}
+          cy={trunkTopY - 6}
+          rx={lrx * 0.6}
+          ry={lry * 0.6}
+          angle={-18}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 5 && (
         <Leaf
-          cx={trunkTopX - 6}
-          cy={trunkTopY - 8}
+          cx={trunkTopX + 4}
+          cy={trunkTopY - 14}
           rx={lrx * 0.65}
           ry={lry * 0.65}
-          angle={-15}
+          angle={5}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 7 && (
         <Leaf
-          cx={trunkTopX + 4}
-          cy={trunkTopY - 14}
+          cx={trunkTopX - 5}
+          cy={trunkTopY - 20}
           rx={lrx * 0.6}
           ry={lry * 0.6}
-          angle={5}
+          angle={-8}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 9 && (
+        <Leaf
+          cx={trunkTopX + 6}
+          cy={trunkTopY - 26}
+          rx={lrx * 0.58}
+          ry={lry * 0.58}
+          angle={12}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
-      {/* Phase 2: left branch + leaves */}
       {stage >= 13 && (
         <motion.line
           x1={trunkTopX}
           y1={branchRootY}
-          x2={bL2x}
-          y2={bL2y}
+          x2={bLx}
+          y2={bLy}
           stroke={colors.trunk}
-          strokeWidth={branchW2}
+          strokeWidth={branchW}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -407,24 +465,23 @@ function StarTree({
       )}
       {stage >= 14 && (
         <Leaf
-          cx={bL2x - 5}
-          cy={bL2y - 5}
+          cx={bLx - 5}
+          cy={bLy - 5}
           rx={lrx * 0.85}
           ry={lry * 0.85}
-          angle={-25}
+          angle={-26}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {/* Phase 2: right branch */}
       {stage >= 15 && (
         <motion.line
           x1={trunkTopX}
           y1={branchRootY}
-          x2={bR2x}
-          y2={bR2y}
+          x2={bRx}
+          y2={bRy}
           stroke={colors.trunk}
-          strokeWidth={branchW2 * 0.85}
+          strokeWidth={branchW * 0.9}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -433,22 +490,33 @@ function StarTree({
       )}
       {stage >= 16 && (
         <Leaf
-          cx={bR2x + 5}
-          cy={bR2y - 4}
-          rx={lrx * 0.8}
-          ry={lry * 0.8}
-          angle={22}
+          cx={bRx + 5}
+          cy={bRy - 5}
+          rx={lrx * 0.82}
+          ry={lry * 0.82}
+          angle={24}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 17 && (
+        <Leaf
+          cx={bLx + 6}
+          cy={bLy + 5}
+          rx={lrx * 0.75}
+          ry={lry * 0.75}
+          angle={10}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 18 && (
         <Leaf
-          cx={bL2x + 6}
-          cy={bL2y + 4}
-          rx={lrx * 0.75}
-          ry={lry * 0.75}
-          angle={10}
+          cx={bRx - 5}
+          cy={bRy + 5}
+          rx={lrx * 0.72}
+          ry={lry * 0.72}
+          angle={-12}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
@@ -459,21 +527,20 @@ function StarTree({
           cy={trunkTopY - 10}
           rx={lrx * 0.7}
           ry={lry * 0.7}
-          angle={-8}
+          angle={-6}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
-      {/* Phase 3: sub-branches */}
       {stage >= 26 && (
         <motion.line
-          x1={bL2x}
-          y1={bL2y}
-          x2={bLL3x}
-          y2={bLL3y}
+          x1={bLx}
+          y1={bLy}
+          x2={bLLx}
+          y2={bLLy}
           stroke={colors.trunk}
-          strokeWidth={branchW3}
+          strokeWidth={subW}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -482,12 +549,26 @@ function StarTree({
       )}
       {stage >= 27 && (
         <motion.line
-          x1={bL2x}
-          y1={bL2y}
-          x2={bLR3x}
-          y2={bLR3y}
+          x1={bLx}
+          y1={bLy}
+          x2={bLRx}
+          y2={bLRy}
           stroke={colors.trunk}
-          strokeWidth={branchW3}
+          strokeWidth={subW}
+          strokeLinecap="round"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        />
+      )}
+      {stage >= 27 && (
+        <motion.line
+          x1={bRx}
+          y1={bRy}
+          x2={bRRx}
+          y2={bRRy}
+          stroke={colors.trunk}
+          strokeWidth={subW}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -496,12 +577,12 @@ function StarTree({
       )}
       {stage >= 28 && (
         <motion.line
-          x1={bR2x}
-          y1={bR2y}
-          x2={bRL3x}
-          y2={bRL3y}
+          x1={bRx}
+          y1={bRy}
+          x2={bRLx}
+          y2={bRLy}
           stroke={colors.trunk}
-          strokeWidth={branchW3 * 0.85}
+          strokeWidth={subW * 0.85}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -510,8 +591,8 @@ function StarTree({
       )}
       {stage >= 27 && (
         <Leaf
-          cx={bLL3x - 4}
-          cy={bLL3y - 4}
+          cx={bLLx - 4}
+          cy={bLLy - 4}
           rx={lrx * 0.9}
           ry={lry * 0.9}
           angle={-28}
@@ -521,8 +602,8 @@ function StarTree({
       )}
       {stage >= 28 && (
         <Leaf
-          cx={bLR3x}
-          cy={bLR3y - 5}
+          cx={bLRx}
+          cy={bLRy - 5}
           rx={lrx}
           ry={lry}
           angle={-5}
@@ -530,30 +611,53 @@ function StarTree({
           fillHL={colors.leafHL}
         />
       )}
+      {stage >= 28 && (
+        <Leaf
+          cx={bRRx - 4}
+          cy={bRRy - 4}
+          rx={lrx * 0.88}
+          ry={lry * 0.88}
+          angle={20}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
       {stage >= 29 && (
         <Leaf
-          cx={bRL3x + 5}
-          cy={bRL3y - 4}
-          rx={lrx * 0.85}
-          ry={lry * 0.85}
-          angle={20}
+          cx={bRLx + 5}
+          cy={bRLy - 4}
+          rx={lrx * 0.82}
+          ry={lry * 0.82}
+          angle={18}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 30 && (
         <Leaf
-          cx={bLL3x + 8}
-          cy={bLL3y + 3}
-          rx={lrx * 0.8}
-          ry={lry * 0.8}
+          cx={bLLx + 8}
+          cy={bLLy + 3}
+          rx={lrx * 0.78}
+          ry={lry * 0.78}
           angle={5}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
-      {/* Phase 4 extras */}
+      {stage >= 26 && (
+        <Sparkle x={bLLx - 8} y={bLLy - 10} delay={0.4} size={2.5} />
+      )}
+      {stage >= 30 && (
+        <Sparkle x={bRRx + 8} y={bRRy - 8} delay={1.2} size={2.5} />
+      )}
+      {stage >= 35 && (
+        <Sparkle x={trunkTopX - 22} y={trunkTopY - 30} delay={0.9} size={3} />
+      )}
+      {stage >= 40 && (
+        <Sparkle x={trunkTopX + 20} y={trunkTopY - 28} delay={1.6} size={3} />
+      )}
+
       {stage >= 39 && (
         <Leaf
           cx={budX + 10}
@@ -579,7 +683,6 @@ function StarTree({
         />
       )}
 
-      {/* Bud/Flower/Fruit at apex */}
       {stage >= 5 && (
         <BudFlowerFruit
           stage={stage}
@@ -593,7 +696,7 @@ function StarTree({
   );
 }
 
-// ── FOOLISH TREE ─────────────────────────────────────────────────────────────
+// FOOLISH TREE (Flow) — Tarot "The Fool": freedom, wandering, carefree, maiwee
 function FoolishTree({
   stage,
   colors,
@@ -602,62 +705,84 @@ function FoolishTree({
   const p1 = Math.min(stage / 12, 1);
   const p2 = stage >= 13 ? Math.min((stage - 13) / 12, 1) : 0;
   const p3 = stage >= 26 ? Math.min((stage - 26) / 12, 1) : 0;
-  const p4 = stage >= 39 ? Math.min((stage - 39) / 11, 1) : 0;
 
   const baseY = 245;
-  // Slightly tilted trunk
-  const trunkBaseX = 102;
-  const trunkH = lerp(5, 85, p1 * 0.55 + p2 * 0.3 + p3 * 0.1 + p4 * 0.05);
-  // Trunk top drifts left (the "maiwee" lean)
-  const trunkTopX = trunkBaseX - p2 * 4 - p3 * 3;
+  const trunkBaseX = 108;
+  const trunkH = lerp(
+    6,
+    82,
+    p1 * 0.5 +
+      p2 * 0.3 +
+      p3 * 0.15 +
+      (stage >= 39 ? Math.min((stage - 39) / 11, 1) * 0.05 : 0),
+  );
+  // Lean LEFT noticeably from stage 1
+  const leanAmount = 20 + p2 * 8 + p3 * 4;
+  const trunkTopX = trunkBaseX - leanAmount;
   const trunkTopY = baseY - trunkH;
-  const trunkW = 4 + p1 * 2.5 + p2 * 1.5;
+  const trunkW = 3.5 + p1 * 2.5 + p2 * 1.5;
 
   const trunkPath = [
-    `M ${trunkBaseX - trunkW} ${baseY}`,
-    `C ${trunkBaseX - trunkW * 0.9} ${baseY - trunkH * 0.5} ${trunkTopX - trunkW * 0.7} ${trunkTopY + 12} ${trunkTopX - trunkW * 0.5} ${trunkTopY}`,
-    `L ${trunkTopX + trunkW * 0.5} ${trunkTopY}`,
-    `C ${trunkTopX + trunkW * 0.7} ${trunkTopY + 12} ${trunkBaseX + trunkW * 0.9} ${baseY - trunkH * 0.5} ${trunkBaseX + trunkW} ${baseY}`,
+    `M ${trunkBaseX - trunkW * 0.6} ${baseY}`,
+    `C ${trunkBaseX - trunkW * 0.8} ${baseY - trunkH * 0.45} ${trunkTopX - trunkW * 0.6} ${trunkTopY + 14} ${trunkTopX - trunkW * 0.45} ${trunkTopY}`,
+    `L ${trunkTopX + trunkW * 0.55} ${trunkTopY}`,
+    `C ${trunkTopX + trunkW * 0.7} ${trunkTopY + 14} ${trunkBaseX + trunkW * 0.9} ${baseY - trunkH * 0.45} ${trunkBaseX + trunkW * 0.6} ${baseY}`,
     "Z",
   ].join(" ");
 
   const lrx = 11;
   const lry = 8;
 
-  // Main left "lazy" branch - relaxed arc going left
-  const mainBranchRootX = trunkTopX;
-  const mainBranchRootY = trunkTopY + trunkH * 0.2;
-  // Goes casually to the left — not dramatic, relaxed
-  const mainBranchTipX = lerp(mainBranchRootX, mainBranchRootX - 55, p2);
-  const mainBranchTipY = lerp(mainBranchRootY, mainBranchRootY - 10, p2);
-  // Control point for the relaxed curve
-  const mainCtrlX = lerp(mainBranchRootX - 20, mainBranchRootX - 30, p2);
-  const mainCtrlY = mainBranchRootY + 8; // sags slightly — very relaxed
-  const mainBranchW = 2.5 + p1 * 1;
+  const branchRootX = trunkTopX;
+  const branchRootY = trunkTopY + trunkH * 0.15;
+  const branchCtrlX = branchRootX - 22;
+  const branchCtrlY = branchRootY + 12;
+  const branchTipX = lerp(branchRootX, branchRootX - 50, p2);
+  const branchTipY = lerp(branchRootY, branchRootY - 5, p2);
+  const mainBW = 2.5 + p1 * 0.8;
 
-  // Second lazy branch - phase 3, drifts a different way
-  const sb2RootX = trunkTopX + 4;
-  const sb2RootY = trunkTopY + trunkH * 0.35;
-  const sb2TipX = sb2RootX - 28 * p3;
-  const sb2TipY = sb2RootY - 32 * p3;
-  const sb2W = 1.8 + p2 * 0.7;
+  const rbRootX = trunkTopX + 2;
+  const rbRootY = trunkTopY + trunkH * 0.3;
+  const rbTipX = rbRootX + 35 * p2;
+  const rbTipY = rbRootY + 8 * p2;
+  const rbCtrlX = rbRootX + 18;
+  const rbCtrlY = rbRootY - 5;
 
-  // Bud is at main branch tip (that's where it sits, casually)
-  const budX = mainBranchTipX;
-  const budY = mainBranchTipY - 8;
+  const sb3RootX = branchRootX - 8;
+  const sb3RootY = branchRootY + trunkH * 0.25;
+  const sb3TipX = sb3RootX - 20 * p3;
+  const sb3TipY = sb3RootY - 35 * p3;
+
+  const budX = branchTipX;
+  const budY = branchTipY - 9;
 
   return (
     <g>
       {stage === 0 && (
-        <motion.circle
-          cx={trunkBaseX}
-          cy={baseY - 4}
-          r={3}
-          fill={colors.leaf}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <motion.g
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-        />
+        >
+          <line
+            x1={trunkBaseX}
+            y1={baseY}
+            x2={trunkBaseX - 5}
+            y2={baseY - 13}
+            stroke={colors.trunk}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+          />
+          <motion.circle
+            cx={trunkBaseX - 6}
+            cy={baseY - 15}
+            r={3}
+            fill={colors.leaf}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+          />
+        </motion.g>
       )}
 
       {stage >= 1 && (
@@ -670,13 +795,23 @@ function FoolishTree({
         />
       )}
 
-      {/* Phase 1 leaves — one slightly off to the side */}
+      {stage >= 2 && (
+        <Leaf
+          cx={trunkTopX - 10}
+          cy={trunkTopY - 3}
+          rx={lrx * 0.72}
+          ry={lry * 0.72}
+          angle={-22}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
       {stage >= 3 && (
         <Leaf
-          cx={trunkTopX + 7}
-          cy={trunkTopY - 5}
-          rx={lrx * 0.7}
-          ry={lry * 0.7}
+          cx={trunkTopX + 8}
+          cy={trunkTopY - 8}
+          rx={lrx * 0.65}
+          ry={lry * 0.65}
           angle={18}
           fill={colors.leaf}
           fillHL={colors.leafHL}
@@ -684,11 +819,11 @@ function FoolishTree({
       )}
       {stage >= 5 && (
         <Leaf
-          cx={trunkTopX - 5}
+          cx={trunkTopX - 16}
           cy={trunkTopY - 10}
-          rx={lrx * 0.65}
-          ry={lry * 0.65}
-          angle={-12}
+          rx={lrx * 0.68}
+          ry={lry * 0.68}
+          angle={-30}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
@@ -696,32 +831,31 @@ function FoolishTree({
       {stage >= 7 && (
         <Leaf
           cx={trunkTopX + 2}
-          cy={trunkTopY - 16}
+          cy={trunkTopY - 17}
           rx={lrx * 0.6}
           ry={lry * 0.6}
-          angle={5}
+          angle={8}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 10 && (
         <Leaf
-          cx={trunkTopX - 14}
+          cx={trunkTopX - 20}
           cy={trunkTopY - 4}
           rx={lrx * 0.65}
           ry={lry * 0.6}
-          angle={-22}
+          angle={-35}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
-      {/* Phase 2: main lazy left branch */}
       {stage >= 13 && (
         <motion.path
-          d={`M ${mainBranchRootX} ${mainBranchRootY} Q ${mainCtrlX} ${mainCtrlY} ${mainBranchTipX} ${mainBranchTipY}`}
+          d={`M ${branchRootX} ${branchRootY} Q ${branchCtrlX} ${branchCtrlY} ${branchTipX} ${branchTipY}`}
           stroke={colors.trunk}
-          strokeWidth={mainBranchW}
+          strokeWidth={mainBW}
           fill="none"
           strokeLinecap="round"
           initial={{ opacity: 0 }}
@@ -729,11 +863,22 @@ function FoolishTree({
           transition={{ duration: 0.7 }}
         />
       )}
-      {/* Leaves along the branch */}
+      {stage >= 14 && (
+        <motion.path
+          d={`M ${rbRootX} ${rbRootY} Q ${rbCtrlX} ${rbCtrlY} ${rbTipX} ${rbTipY}`}
+          stroke={colors.trunk}
+          strokeWidth={mainBW * 0.75}
+          fill="none"
+          strokeLinecap="round"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+        />
+      )}
       {stage >= 14 && (
         <Leaf
-          cx={mainBranchTipX + 6}
-          cy={mainBranchTipY - 3}
+          cx={branchTipX + 7}
+          cy={branchTipY - 2}
           rx={lrx}
           ry={lry}
           angle={-8}
@@ -743,47 +888,57 @@ function FoolishTree({
       )}
       {stage >= 15 && (
         <Leaf
-          cx={mainBranchTipX - 4}
-          cy={mainBranchTipY - 10}
-          rx={lrx * 0.85}
-          ry={lry * 0.85}
+          cx={branchTipX - 4}
+          cy={branchTipY - 9}
+          rx={lrx * 0.88}
+          ry={lry * 0.88}
           angle={-25}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 15 && (
+        <Leaf
+          cx={rbTipX + 5}
+          cy={rbTipY - 3}
+          rx={lrx * 0.78}
+          ry={lry * 0.78}
+          angle={15}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 17 && (
         <Leaf
-          cx={lerp(mainBranchRootX, mainBranchTipX, 0.5) + 2}
-          cy={lerp(mainBranchRootY, mainBranchTipY, 0.5) - 8}
+          cx={lerp(branchRootX, branchTipX, 0.5) + 2}
+          cy={lerp(branchRootY, branchTipY, 0.5) - 6}
           rx={lrx * 0.75}
           ry={lry * 0.75}
-          angle={-15}
+          angle={-16}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 19 && (
         <Leaf
-          cx={mainBranchTipX + 8}
-          cy={mainBranchTipY + 6}
-          rx={lrx * 0.8}
-          ry={lry * 0.8}
+          cx={branchTipX + 10}
+          cy={branchTipY + 7}
+          rx={lrx * 0.82}
+          ry={lry * 0.82}
           angle={12}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
-      {/* Phase 3: second lazy branch */}
       {stage >= 26 && (
         <motion.line
-          x1={sb2RootX}
-          y1={sb2RootY}
-          x2={sb2TipX}
-          y2={sb2TipY}
+          x1={sb3RootX}
+          y1={sb3RootY}
+          x2={sb3TipX}
+          y2={sb3TipY}
           stroke={colors.trunk}
-          strokeWidth={sb2W}
+          strokeWidth={1.8 + p2 * 0.6}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -792,44 +947,53 @@ function FoolishTree({
       )}
       {stage >= 27 && (
         <Leaf
-          cx={sb2TipX - 5}
-          cy={sb2TipY - 5}
-          rx={lrx * 0.85}
-          ry={lry * 0.85}
-          angle={-20}
+          cx={sb3TipX - 5}
+          cy={sb3TipY - 5}
+          rx={lrx * 0.88}
+          ry={lry * 0.88}
+          angle={-22}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 28 && (
         <Leaf
-          cx={sb2TipX + 7}
-          cy={sb2TipY - 3}
+          cx={sb3TipX + 7}
+          cy={sb3TipY - 3}
           rx={lrx * 0.8}
           ry={lry * 0.8}
-          angle={15}
+          angle={14}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {/* Branch extends more in p3 */}
-      {stage >= 30 && (
+      {stage >= 29 && (
         <Leaf
-          cx={mainBranchTipX - 12}
-          cy={mainBranchTipY - 5}
-          rx={lrx * 0.75}
-          ry={lry * 0.75}
+          cx={branchTipX - 12}
+          cy={branchTipY - 5}
+          rx={lrx * 0.78}
+          ry={lry * 0.78}
           angle={-30}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
+      {stage >= 30 && (
+        <Leaf
+          cx={rbTipX - 5}
+          cy={rbTipY + 8}
+          rx={lrx * 0.75}
+          ry={lry * 0.75}
+          angle={20}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
 
-      {/* Phase 4: the branch extends further, more laid-back */}
       {stage >= 39 && (
         <Leaf
-          cx={mainBranchTipX - 5}
-          cy={mainBranchTipY + 8}
+          cx={branchTipX - 5}
+          cy={branchTipY + 9}
           rx={lrx * 0.9}
           ry={lry * 0.9}
           angle={8}
@@ -838,20 +1002,19 @@ function FoolishTree({
           delay={0.1}
         />
       )}
-      {stage >= 41 && (
+      {stage >= 40 && (
         <Leaf
-          cx={sb2TipX - 15}
-          cy={sb2TipY - 10}
-          rx={lrx * 0.8}
-          ry={lry * 0.8}
-          angle={-35}
+          cx={sb3TipX - 15}
+          cy={sb3TipY - 10}
+          rx={lrx * 0.82}
+          ry={lry * 0.82}
+          angle={-36}
           fill={colors.leaf}
           fillHL={colors.leafHL}
           delay={0.15}
         />
       )}
 
-      {/* Bud at branch tip */}
       {stage >= 5 && (
         <BudFlowerFruit
           stage={stage}
@@ -865,7 +1028,7 @@ function FoolishTree({
   );
 }
 
-// ── EMPRESS TREE ─────────────────────────────────────────────────────────────
+// EMPRESS TREE — Tarot "The Empress": abundance, motherly, lush, wide sheltering canopy
 function EmpressTree({
   stage,
   colors,
@@ -878,60 +1041,70 @@ function EmpressTree({
 
   const baseY = 245;
   const trunkBaseX = 100;
-  // Empress: thick trunk from the start
-  const trunkH = lerp(8, 75, p1 * 0.5 + p2 * 0.3 + p3 * 0.15 + p4 * 0.05);
+  const trunkH = lerp(10, 68, p1 * 0.45 + p2 * 0.3 + p3 * 0.18 + p4 * 0.07);
   const trunkTopX = trunkBaseX;
   const trunkTopY = baseY - trunkH;
-  // Empress trunk is noticeably wider
-  const trunkW = 7 + p1 * 4 + p2 * 2;
+  // THICK trunk from stage 1
+  const trunkW = 9 + p1 * 5 + p2 * 2;
 
   const trunkPath = [
     `M ${trunkBaseX - trunkW} ${baseY}`,
-    `C ${trunkBaseX - trunkW * 0.95} ${baseY - trunkH * 0.4} ${trunkTopX - trunkW * 0.7} ${trunkTopY + 8} ${trunkTopX - trunkW * 0.5} ${trunkTopY}`,
-    `L ${trunkTopX + trunkW * 0.5} ${trunkTopY}`,
-    `C ${trunkTopX + trunkW * 0.7} ${trunkTopY + 8} ${trunkBaseX + trunkW * 0.95} ${baseY - trunkH * 0.4} ${trunkBaseX + trunkW} ${baseY}`,
+    `C ${trunkBaseX - trunkW * 0.92} ${baseY - trunkH * 0.38} ${trunkTopX - trunkW * 0.65} ${trunkTopY + 10} ${trunkTopX - trunkW * 0.45} ${trunkTopY}`,
+    `L ${trunkTopX + trunkW * 0.45} ${trunkTopY}`,
+    `C ${trunkTopX + trunkW * 0.65} ${trunkTopY + 10} ${trunkBaseX + trunkW * 0.92} ${baseY - trunkH * 0.38} ${trunkBaseX + trunkW} ${baseY}`,
     "Z",
   ].join(" ");
 
-  const lrx = 12;
-  const lry = 9;
-  const lrxLg = lrx * 1.15;
-  const lryLg = lry * 1.15;
+  const lrx = 13;
+  const lry = 10;
+  const lrxLg = lrx * 1.2;
+  const lryLg = lry * 1.2;
 
-  const branchRootY = trunkTopY + trunkH * 0.18;
+  const branchRootY = trunkTopY + trunkH * 0.16;
 
-  // Phase 2: wide spreading branches — left heavier
-  const bLtipX = lerp(trunkTopX, trunkTopX - 50, p2);
-  const bLtipY = lerp(branchRootY, branchRootY - 20, p2);
-  const bRtipX = lerp(trunkTopX, trunkTopX + 40, p2);
-  const bRtipY = lerp(branchRootY, branchRootY - 15, p2);
-  const mainBranchW = 4 + p1 * 1.5 + p2 * 1;
+  const bLtipX = lerp(trunkTopX, trunkTopX - 62, p2);
+  const bLtipY = lerp(branchRootY, branchRootY - 18, p2);
+  const bRtipX = lerp(trunkTopX, trunkTopX + 52, p2);
+  const bRtipY = lerp(branchRootY, branchRootY - 14, p2);
+  const mainBW = 5 + p1 * 2 + p2 * 1.2;
 
-  // Phase 3: sub-branches — denser
-  const bLLtipX = bLtipX - 20 * p3;
-  const bLLtipY = bLtipY - 25 * p3;
-  const bLRtipX = bLtipX + 12 * p3;
-  const bLRtipY = bLtipY - 28 * p3;
-  const bRRtipX = bRtipX + 16 * p3;
-  const bRRtipY = bRtipY - 22 * p3;
-  const subBranchW = 2.5 + p2 * 0.8;
+  const bLLtipX = bLtipX - 22 * p3;
+  const bLLtipY = bLtipY - 22 * p3;
+  const bLRtipX = bLtipX + 14 * p3;
+  const bLRtipY = bLtipY - 26 * p3;
+  const bRRtipX = bRtipX + 18 * p3;
+  const bRRtipY = bRtipY - 18 * p3;
+  const bRLtipX = bRtipX - 12 * p3;
+  const bRLtipY = bRtipY - 28 * p3;
+  const subBW = 3 + p2 * 1;
 
-  // Bud at center-top (slightly left in p4 — left side heavier)
-  const budX = trunkTopX - p4 * 6;
-  const budY = trunkTopY - 10;
+  const budX = trunkTopX;
+  const budY = trunkTopY - 12;
 
   return (
     <g>
       {stage === 0 && (
-        <motion.circle
-          cx={trunkBaseX}
-          cy={baseY - 4}
-          r={4}
-          fill={colors.leaf}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <motion.g
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-        />
+        >
+          <rect
+            x={trunkBaseX - 7}
+            y={baseY - 10}
+            width={14}
+            height={10}
+            rx={2}
+            fill={colors.trunk}
+          />
+          <ellipse
+            cx={trunkBaseX}
+            cy={baseY - 10}
+            rx={12}
+            ry={5}
+            fill={colors.leaf}
+          />
+        </motion.g>
       )}
 
       {stage >= 1 && (
@@ -944,118 +1117,138 @@ function EmpressTree({
         />
       )}
 
-      {/* Phase 1 leaves — spread wide from the start */}
-      {stage >= 3 && (
+      {stage >= 2 && (
         <Leaf
-          cx={trunkTopX + 14}
-          cy={trunkTopY - 3}
-          rx={lrx * 0.85}
-          ry={lry * 0.85}
-          angle={25}
+          cx={trunkTopX + 16}
+          cy={trunkTopY - 2}
+          rx={lrx * 0.9}
+          ry={lry * 0.9}
+          angle={28}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 2 && (
+        <Leaf
+          cx={trunkTopX - 16}
+          cy={trunkTopY - 2}
+          rx={lrx * 0.95}
+          ry={lry * 0.95}
+          angle={-28}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 4 && (
         <Leaf
-          cx={trunkTopX - 14}
-          cy={trunkTopY - 3}
-          rx={lrx * 0.9}
-          ry={lry * 0.9}
-          angle={-25}
+          cx={trunkTopX + 4}
+          cy={trunkTopY - 12}
+          rx={lrx * 0.85}
+          ry={lry * 0.85}
+          angle={5}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 5 && (
         <Leaf
-          cx={trunkTopX + 3}
-          cy={trunkTopY - 12}
+          cx={trunkTopX - 24}
+          cy={trunkTopY}
+          rx={lrx * 0.82}
+          ry={lry * 0.82}
+          angle={-35}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 6 && (
+        <Leaf
+          cx={trunkTopX + 24}
+          cy={trunkTopY}
+          rx={lrx * 0.78}
+          ry={lry * 0.78}
+          angle={32}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 8 && (
+        <Leaf
+          cx={trunkTopX - 10}
+          cy={trunkTopY - 16}
           rx={lrx * 0.8}
           ry={lry * 0.8}
-          angle={5}
+          angle={-12}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {stage >= 7 && (
+      {stage >= 10 && (
         <Leaf
-          cx={trunkTopX - 20}
-          cy={trunkTopY - 1}
-          rx={lrx * 0.75}
-          ry={lry * 0.75}
-          angle={-30}
-          fill={colors.leaf}
-          fillHL={colors.leafHL}
-        />
-      )}
-      {stage >= 9 && (
-        <Leaf
-          cx={trunkTopX + 20}
-          cy={trunkTopY - 1}
-          rx={lrx * 0.7}
-          ry={lry * 0.7}
-          angle={28}
+          cx={trunkTopX + 10}
+          cy={trunkTopY - 18}
+          rx={lrx * 0.78}
+          ry={lry * 0.78}
+          angle={14}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
-      {/* Phase 2: left heavy branch */}
       {stage >= 13 && (
         <motion.line
-          x1={trunkTopX - 4}
+          x1={trunkTopX - 5}
           y1={branchRootY}
           x2={bLtipX}
           y2={bLtipY}
           stroke={colors.trunk}
-          strokeWidth={mainBranchW}
+          strokeWidth={mainBW}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6 }}
         />
       )}
-      {stage >= 14 && (
+      {stage >= 13 && (
         <Leaf
-          cx={bLtipX - 8}
+          cx={bLtipX - 10}
           cy={bLtipY - 5}
           rx={lrxLg}
           ry={lryLg}
-          angle={-28}
+          angle={-30}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {stage >= 15 && (
+      {stage >= 14 && (
         <motion.line
-          x1={trunkTopX + 4}
+          x1={trunkTopX + 5}
           y1={branchRootY}
           x2={bRtipX}
           y2={bRtipY}
           stroke={colors.trunk}
-          strokeWidth={mainBranchW * 0.82}
+          strokeWidth={mainBW * 0.85}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6 }}
         />
       )}
-      {stage >= 16 && (
+      {stage >= 15 && (
         <Leaf
-          cx={bRtipX + 7}
-          cy={bRtipY - 5}
+          cx={bRtipX + 8}
+          cy={bRtipY - 4}
           rx={lrx}
           ry={lry}
-          angle={26}
+          angle={28}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {stage >= 17 && (
+      {stage >= 16 && (
         <Leaf
-          cx={bLtipX + 10}
-          cy={bLtipY + 5}
+          cx={bLtipX + 12}
+          cy={bLtipY + 6}
           rx={lrx}
           ry={lry}
           angle={8}
@@ -1063,10 +1256,21 @@ function EmpressTree({
           fillHL={colors.leafHL}
         />
       )}
-      {stage >= 18 && (
+      {stage >= 17 && (
         <Leaf
-          cx={bRtipX - 5}
-          cy={bRtipY + 5}
+          cx={bRtipX - 6}
+          cy={bRtipY + 6}
+          rx={lrx * 0.9}
+          ry={lry * 0.9}
+          angle={-10}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 19 && (
+        <Leaf
+          cx={trunkTopX - 6}
+          cy={trunkTopY - 8}
           rx={lrx * 0.85}
           ry={lry * 0.85}
           angle={-8}
@@ -1076,17 +1280,16 @@ function EmpressTree({
       )}
       {stage >= 20 && (
         <Leaf
-          cx={trunkTopX - 5}
-          cy={trunkTopY - 8}
-          rx={lrx * 0.8}
-          ry={lry * 0.8}
-          angle={-10}
+          cx={lerp(trunkTopX, bLtipX, 0.5) - 4}
+          cy={lerp(branchRootY, bLtipY, 0.5) - 6}
+          rx={lrx * 0.88}
+          ry={lry * 0.88}
+          angle={-18}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
-      {/* Phase 3: denser sub-branches */}
       {stage >= 26 && (
         <motion.line
           x1={bLtipX}
@@ -1094,7 +1297,7 @@ function EmpressTree({
           x2={bLLtipX}
           y2={bLLtipY}
           stroke={colors.trunk}
-          strokeWidth={subBranchW}
+          strokeWidth={subBW}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -1108,7 +1311,21 @@ function EmpressTree({
           x2={bLRtipX}
           y2={bLRtipY}
           stroke={colors.trunk}
-          strokeWidth={subBranchW}
+          strokeWidth={subBW}
+          strokeLinecap="round"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        />
+      )}
+      {stage >= 27 && (
+        <motion.line
+          x1={bRtipX}
+          y1={bRtipY}
+          x2={bRRtipX}
+          y2={bRRtipY}
+          stroke={colors.trunk}
+          strokeWidth={subBW * 0.85}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -1119,92 +1336,125 @@ function EmpressTree({
         <motion.line
           x1={bRtipX}
           y1={bRtipY}
-          x2={bRRtipX}
-          y2={bRRtipY}
+          x2={bRLtipX}
+          y2={bRLtipY}
           stroke={colors.trunk}
-          strokeWidth={subBranchW * 0.85}
+          strokeWidth={subBW * 0.9}
           strokeLinecap="round"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         />
       )}
-      {stage >= 27 && (
+      {stage >= 26 && (
         <Leaf
-          cx={bLLtipX - 8}
+          cx={bLLtipX - 10}
           cy={bLLtipY - 5}
           rx={lrxLg}
           ry={lryLg}
-          angle={-30}
+          angle={-32}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {stage >= 28 && (
-        <Leaf
-          cx={bLLtipX + 10}
-          cy={bLLtipY + 3}
-          rx={lrx}
-          ry={lry}
-          angle={5}
-          fill={colors.leaf}
-          fillHL={colors.leafHL}
-        />
-      )}
-      {stage >= 28 && (
+      {stage >= 27 && (
         <Leaf
           cx={bLRtipX - 5}
-          cy={bLRtipY - 5}
+          cy={bLRtipY - 6}
           rx={lrxLg}
           ry={lryLg}
-          angle={-12}
+          angle={-10}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 27 && (
+        <Leaf
+          cx={bLLtipX + 12}
+          cy={bLLtipY + 5}
+          rx={lrx}
+          ry={lry}
+          angle={6}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 28 && (
+        <Leaf
+          cx={bRRtipX + 9}
+          cy={bRRtipY - 4}
+          rx={lrx}
+          ry={lry}
+          angle={24}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 28 && (
+        <Leaf
+          cx={bRLtipX - 6}
+          cy={bRLtipY - 6}
+          rx={lrxLg}
+          ry={lryLg}
+          angle={-15}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 29 && (
         <Leaf
-          cx={bRRtipX + 8}
-          cy={bRRtipY - 4}
-          rx={lrx}
-          ry={lry}
-          angle={22}
+          cx={bLRtipX + 12}
+          cy={bLRtipY + 5}
+          rx={lrx * 0.9}
+          ry={lry * 0.9}
+          angle={20}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 30 && (
         <Leaf
-          cx={bLRtipX + 10}
-          cy={bLRtipY + 4}
-          rx={lrx * 0.85}
-          ry={lry * 0.85}
-          angle={18}
+          cx={bRRtipX - 8}
+          cy={bRRtipY + 6}
+          rx={lrx * 0.88}
+          ry={lry * 0.88}
+          angle={-18}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
-      {/* Phase 4: even denser on the left */}
       {stage >= 39 && (
         <Leaf
-          cx={bLLtipX - 16}
+          cx={bLLtipX - 18}
           cy={bLLtipY - 12}
           rx={lrxLg}
           ry={lryLg}
-          angle={-35}
+          angle={-38}
           fill={colors.leaf}
           fillHL={colors.leafHL}
           delay={0.1}
         />
       )}
+      {stage >= 39 && (
+        <Leaf
+          cx={bRRtipX + 18}
+          cy={bRRtipY - 10}
+          rx={lrx}
+          ry={lry}
+          angle={30}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+          delay={0.12}
+        />
+      )}
       {stage >= 40 && (
         <Leaf
           cx={bLRtipX - 14}
-          cy={bLRtipY - 10}
+          cy={bLRtipY - 12}
           rx={lrx}
           ry={lry}
-          angle={-22}
+          angle={-24}
           fill={colors.leaf}
           fillHL={colors.leafHL}
           delay={0.15}
@@ -1212,18 +1462,29 @@ function EmpressTree({
       )}
       {stage >= 42 && (
         <Leaf
-          cx={budX - 18}
-          cy={budY + 5}
+          cx={budX - 20}
+          cy={budY + 6}
           rx={lrxLg}
           ry={lryLg}
-          angle={-28}
+          angle={-30}
           fill={colors.leaf}
           fillHL={colors.leafHL}
           delay={0.2}
         />
       )}
+      {stage >= 42 && (
+        <Leaf
+          cx={budX + 18}
+          cy={budY + 8}
+          rx={lrxLg}
+          ry={lryLg}
+          angle={26}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+          delay={0.22}
+        />
+      )}
 
-      {/* Bud at center-top */}
       {stage >= 5 && (
         <BudFlowerFruit
           stage={stage}
@@ -1237,7 +1498,7 @@ function EmpressTree({
   );
 }
 
-// ── Pot ───────────────────────────────────────────────────────────────────────
+// Pot
 function Pot({ personality }: { personality: TreePersonality }) {
   const potColor = C[personality].trunk;
   const potDark = C[personality].trunkDark;
@@ -1269,7 +1530,6 @@ export default function PlantGrowth({
 }: PlantGrowthProps) {
   const stage = Math.min(Math.floor(totalMinutes / 20), 50);
   const colors = C[personality];
-
   const next = 20 - (totalMinutes % 20);
 
   return (
