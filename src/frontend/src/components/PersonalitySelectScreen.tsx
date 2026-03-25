@@ -5,94 +5,221 @@ const PERSONALITIES: {
   id: TreePersonality;
   name: string;
   description: string;
-  colors: { trunk: string; leaf: string; leafHL: string };
 }[] = [
   {
     id: "star",
     name: "スター",
     description: "上へ、ひたすらに",
-    colors: {
-      trunk: "hsl(220,10%,72%)",
-      leaf: "hsl(162,35%,68%)",
-      leafHL: "hsl(162,35%,82%)",
-    },
   },
   {
     id: "foolish",
-    name: "フーリッシュ",
+    name: "フロウ",
     description: "我が道を、のびのびと",
-    colors: {
-      trunk: "hsl(18,38%,40%)",
-      leaf: "hsl(78,25%,46%)",
-      leafHL: "hsl(78,25%,62%)",
-    },
   },
   {
     id: "empress",
     name: "エンプレス",
     description: "豊かに、満ちあふれて",
-    colors: {
-      trunk: "hsl(218,52%,26%)",
-      leaf: "hsl(158,45%,35%)",
-      leafHL: "hsl(158,40%,52%)",
-    },
   },
 ];
 
-function SproutSVG({
-  colors,
-}: { colors: { trunk: string; leaf: string; leafHL: string } }) {
+// Star: thin stem, grows straight up with slight rightward lean at tip, sparkle at top
+function StarSprout() {
   return (
     <svg viewBox="0 0 80 100" width={80} height={100} aria-hidden="true">
       {/* Pot */}
       <path
-        d="M 24 80 Q 20 94 40 96 Q 60 94 56 80 Z"
-        fill={colors.trunk}
-        opacity={0.6}
+        d="M 26 82 Q 22 95 40 97 Q 58 95 54 82 Z"
+        fill="hsl(220,10%,72%)"
+        opacity={0.5}
       />
       <ellipse
         cx={40}
-        cy={80}
-        rx={16}
-        ry={3.5}
-        fill={colors.trunk}
-        opacity={0.4}
+        cy={82}
+        rx={14}
+        ry={3}
+        fill="hsl(220,10%,72%)"
+        opacity={0.35}
       />
-      {/* Trunk */}
+      {/* Stem - straight, thin, slight rightward lean near top */}
       <path
-        d="M 37 80 C 37 68 38 58 39 48 L 41 48 C 42 58 43 68 43 80 Z"
-        fill={colors.trunk}
+        d="M 38.5 82 L 38.5 56 L 39.5 46 L 42 36"
+        stroke="hsl(220,12%,75%)"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
       />
-      {/* Tiny leaves */}
+      {/* Small mint leaves near top, delicate */}
       <ellipse
-        cx={47}
+        cx={46}
         cy={50}
-        rx={8}
-        ry={5.5}
-        fill={colors.leaf}
-        transform="rotate(20,47,50)"
+        rx={6}
+        ry={3.5}
+        fill="hsl(162,35%,68%)"
+        transform="rotate(30,46,50)"
       />
       <ellipse
-        cx={33}
+        cx={35}
         cy={54}
-        rx={7}
-        ry={5}
-        fill={colors.leaf}
-        transform="rotate(-15,33,54)"
+        rx={5}
+        ry={3}
+        fill="hsl(162,35%,68%)"
+        transform="rotate(-20,35,54)"
       />
-      <ellipse
-        cx={41}
-        cy={44}
-        rx={5.5}
-        ry={4}
-        fill={colors.leafHL}
-        opacity={0.7}
-        transform="rotate(5,41,44)"
-      />
-      {/* Tiny bud */}
-      <circle cx={40} cy={40} r={3} fill={colors.trunk} opacity={0.8} />
+      {/* Sparkle / star at tip */}
+      <g transform="translate(42, 32)" opacity={0.9}>
+        <line
+          x1="0"
+          y1="-5"
+          x2="0"
+          y2="5"
+          stroke="hsl(52,90%,65%)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="-5"
+          y1="0"
+          x2="5"
+          y2="0"
+          stroke="hsl(52,90%,65%)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="-3.5"
+          y1="-3.5"
+          x2="3.5"
+          y2="3.5"
+          stroke="hsl(52,90%,65%)"
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
+        <line
+          x1="3.5"
+          y1="-3.5"
+          x2="-3.5"
+          y2="3.5"
+          stroke="hsl(52,90%,65%)"
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
+        <circle cx={0} cy={0} r={1.5} fill="hsl(52,90%,75%)" />
+      </g>
     </svg>
   );
+}
+
+// Flow: stem tilted diagonally from base, going its own way
+function FlowSprout() {
+  return (
+    <svg viewBox="0 0 80 100" width={80} height={100} aria-hidden="true">
+      {/* Pot */}
+      <path
+        d="M 26 82 Q 22 95 40 97 Q 58 95 54 82 Z"
+        fill="hsl(18,38%,40%)"
+        opacity={0.5}
+      />
+      <ellipse
+        cx={40}
+        cy={82}
+        rx={14}
+        ry={3}
+        fill="hsl(18,38%,40%)"
+        opacity={0.35}
+      />
+      {/* Stem tilted to the left from base, going diagonal */}
+      <path
+        d="M 40 82 C 39 72 34 60 28 46"
+        stroke="hsl(18,38%,40%)"
+        strokeWidth="3"
+        fill="none"
+        strokeLinecap="round"
+      />
+      {/* Leaves growing sideways from the diagonal stem */}
+      <ellipse
+        cx={23}
+        cy={52}
+        rx={9}
+        ry={4.5}
+        fill="hsl(78,25%,46%)"
+        transform="rotate(-30,23,52)"
+      />
+      <ellipse
+        cx={34}
+        cy={60}
+        rx={7}
+        ry={3.5}
+        fill="hsl(78,25%,46%)"
+        transform="rotate(15,34,60)"
+      />
+      <ellipse
+        cx={26}
+        cy={44}
+        rx={6}
+        ry={3}
+        fill="hsl(78,25%,58%)"
+        transform="rotate(-10,26,44)"
+        opacity={0.8}
+      />
+      {/* Tip, slightly rounded bud going sideways */}
+      <circle cx={26} cy={40} r={3.5} fill="hsl(78,25%,38%)" opacity={0.9} />
+    </svg>
+  );
+}
+
+// Empress: short, squat, noticeably thick base/trunk
+function EmpressSprout() {
+  return (
+    <svg viewBox="0 0 80 100" width={80} height={100} aria-hidden="true">
+      {/* Pot - slightly wider for the empress */}
+      <path
+        d="M 22 82 Q 18 95 40 97 Q 62 95 58 82 Z"
+        fill="hsl(218,52%,26%)"
+        opacity={0.55}
+      />
+      <ellipse
+        cx={40}
+        cy={82}
+        rx={18}
+        ry={3.5}
+        fill="hsl(218,52%,26%)"
+        opacity={0.4}
+      />
+      {/* Trunk - thick, short, squat, authoritative */}
+      <path
+        d="M 34 82 L 33 65 L 34 55 L 46 55 L 47 65 L 46 82 Z"
+        fill="hsl(218,52%,26%)"
+      />
+      {/* Wide, dense canopy - lots of leaves, full silhouette */}
+      <ellipse cx={40} cy={46} rx={17} ry={11} fill="hsl(158,45%,35%)" />
+      <ellipse cx={30} cy={50} rx={10} ry={7} fill="hsl(158,45%,35%)" />
+      <ellipse cx={50} cy={50} rx={10} ry={7} fill="hsl(158,45%,35%)" />
+      <ellipse
+        cx={40}
+        cy={40}
+        rx={12}
+        ry={8}
+        fill="hsl(158,40%,45%)"
+        opacity={0.7}
+      />
+      {/* Crown highlight */}
+      <ellipse
+        cx={40}
+        cy={38}
+        rx={7}
+        ry={5}
+        fill="hsl(158,38%,52%)"
+        opacity={0.5}
+      />
+    </svg>
+  );
+}
+
+function SproutForPersonality({ id }: { id: TreePersonality }) {
+  if (id === "star") return <StarSprout />;
+  if (id === "foolish") return <FlowSprout />;
+  return <EmpressSprout />;
 }
 
 interface PersonalitySelectScreenProps {
@@ -142,7 +269,7 @@ export default function PersonalitySelectScreen({
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
           >
-            <SproutSVG colors={p.colors} />
+            <SproutForPersonality id={p.id} />
             <div className="text-center">
               <p className="text-sm font-semibold text-foreground">{p.name}</p>
               <p className="text-xs text-muted-foreground mt-1 leading-snug">

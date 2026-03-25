@@ -12,18 +12,10 @@ import {
   useGetAllRecords,
   useGetTotalMinutes,
 } from "@/hooks/useQueries";
-import { Clock, Droplets, Flame, Loader2, Trash2 } from "lucide-react";
+import { CalendarDays, Clock, Droplets, Loader2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-
-const MOOD_EMOJI: Record<number, string> = {
-  1: "😔",
-  2: "😐",
-  3: "🙂",
-  4: "😊",
-  5: "😌",
-};
 
 const PERSONALITY_ORDER: TreePersonality[] = ["star", "foolish", "empress"];
 
@@ -63,39 +55,9 @@ function getTodayStr(): string {
   return `${y}-${m}-${d}`;
 }
 
-function computeStreak(records: MeditationRecordWithId[]): number {
+function computeTotalDays(records: MeditationRecordWithId[]): number {
   if (records.length === 0) return 0;
-  const uniqueDates = [...new Set(records.map((r) => r.record.date))].sort(
-    (a, b) => b.localeCompare(a),
-  );
-  const today = getTodayStr();
-  const yesterday = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
-  })();
-
-  let startDate = today;
-  if (!uniqueDates.includes(today)) {
-    if (uniqueDates.includes(yesterday)) {
-      startDate = yesterday;
-    } else {
-      return 0;
-    }
-  }
-
-  let streak = 0;
-  const current = new Date(startDate);
-  for (const date of uniqueDates) {
-    const curr = current.toISOString().slice(0, 10);
-    if (date === curr) {
-      streak++;
-      current.setDate(current.getDate() - 1);
-    } else if (date < curr) {
-      break;
-    }
-  }
-  return streak;
+  return new Set(records.map((r) => r.record.date)).size;
 }
 
 function playAlarm(audioCtxRef: React.MutableRefObject<AudioContext | null>) {
@@ -128,7 +90,11 @@ function playAlarm(audioCtxRef: React.MutableRefObject<AudioContext | null>) {
 
 type TimerStatus = "idle" | "running" | "paused" | "finished";
 
-function MeditationTimer() {
+function MeditationTimer({
+  onElapsedMinutes,
+}: {
+  onElapsedMinutes?: (minutes: number) => void;
+}) {
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [remaining, setRemaining] = useState(10 * 60);
@@ -137,6 +103,7 @@ function MeditationTimer() {
   const startTimeRef = useRef<number | null>(null);
   const remainingAtStartRef = useRef<number>(0);
   const statusRef = useRef<TimerStatus>("idle");
+  const elapsedMinutesRef = useRef<number>(0);
 
   const totalSeconds = targetMinutes * 60;
   const progress =
@@ -171,6 +138,8 @@ function MeditationTimer() {
           clearTimer();
           setStatus("finished");
           playAlarm(audioCtxRef);
+          elapsedMinutesRef.current = targetMinutes;
+          onElapsedMinutes?.(targetMinutes);
         }
       }
     }
@@ -178,7 +147,7 @@ function MeditationTimer() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [clearTimer]);
+  }, [clearTimer, onElapsedMinutes, targetMinutes]);
 
   function handleStart() {
     if (status === "idle") {
@@ -204,6 +173,8 @@ function MeditationTimer() {
         intervalRef.current = null;
         setStatus("finished");
         playAlarm(audioCtxRef);
+        elapsedMinutesRef.current = targetMinutes;
+        onElapsedMinutes?.(targetMinutes);
       }
     }, 1000);
   }
@@ -212,6 +183,11 @@ function MeditationTimer() {
     clearTimer();
     startTimeRef.current = null;
     setStatus("paused");
+    // Auto-fill with elapsed time so far
+    const elapsed = Math.floor((totalSeconds - remaining) / 60);
+    if (elapsed > 0) {
+      onElapsedMinutes?.(elapsed);
+    }
   }
 
   function handleReset() {
@@ -382,41 +358,6 @@ function MeditationTimer() {
   );
 }
 
-function MoodSelector({
-  value,
-  onChange,
-  label,
-  ocidPrefix,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  label: string;
-  ocidPrefix: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-foreground">{label}</Label>
-      <div className="flex gap-2">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            data-ocid={`${ocidPrefix}.toggle`}
-            onClick={() => onChange(n)}
-            className={`flex-1 py-2 rounded-lg text-lg transition-all duration-150 border ${
-              value === n
-                ? "bg-primary border-primary shadow-sm scale-105"
-                : "bg-card border-border hover:border-primary/50 hover:bg-secondary/50"
-            }`}
-          >
-            <span className="text-base">{MOOD_EMOJI[n]}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function StatCard({
   icon,
   label,
@@ -459,8 +400,6 @@ export default function MeditationLog() {
   const today = getTodayStr();
   const [date, setDate] = useState(today);
   const [duration, setDuration] = useState("");
-  const [moodBefore, setMoodBefore] = useState(3);
-  const [moodAfter, setMoodAfter] = useState(3);
   const [memo, setMemo] = useState("");
 
   // Personality / cycle state
@@ -469,13 +408,14 @@ export default function MeditationLog() {
   );
   const [stayHere, setStayHere] = useState<boolean>(() => getStayHere());
   const [cycleCompleteOpen, setCycleCompleteOpen] = useState(false);
+  const [cycleTransition, setCycleTransition] = useState(false);
 
   const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
   const addRecord = useAddRecord();
   const deleteRecord = useDeleteRecord();
 
-  const streak = computeStreak(records);
+  const totalDays = computeTotalDays(records);
   const totalMin = Number(totalMinutes);
   const stage = Math.min(Math.floor(totalMin / 20), 50);
 
@@ -486,7 +426,6 @@ export default function MeditationLog() {
   useEffect(() => {
     if (prevStageRef.current !== null && stage > prevStageRef.current) {
       if (stage === 50) {
-        // Show cycle complete modal if not shown yet
         if (!getCycleCompleteShown()) {
           setCycleCompleteOpen(true);
           localStorage.setItem("meditation_cycle_complete_shown", "true");
@@ -513,16 +452,24 @@ export default function MeditationLog() {
   }
 
   function handleNextCycle() {
-    const nextIndex = getCycleIndex() + 1;
-    const nextPersonality =
-      PERSONALITY_ORDER[nextIndex % PERSONALITY_ORDER.length];
-    localStorage.setItem("meditation_cycle_index", String(nextIndex));
-    localStorage.setItem("meditation_tree_personality", nextPersonality);
-    localStorage.removeItem("meditation_stay_here");
-    localStorage.removeItem("meditation_cycle_complete_shown");
-    setPersonality(nextPersonality);
-    setStayHere(false);
     setCycleCompleteOpen(false);
+    setCycleTransition(true);
+    setTimeout(() => {
+      const nextIndex = getCycleIndex() + 1;
+      const nextPersonality =
+        PERSONALITY_ORDER[nextIndex % PERSONALITY_ORDER.length];
+      localStorage.setItem("meditation_cycle_index", String(nextIndex));
+      localStorage.setItem("meditation_tree_personality", nextPersonality);
+      localStorage.removeItem("meditation_stay_here");
+      localStorage.removeItem("meditation_cycle_complete_shown");
+      setPersonality(nextPersonality);
+      setStayHere(false);
+      setCycleTransition(false);
+    }, 2800);
+  }
+
+  function handleTimerElapsed(minutes: number) {
+    setDuration(String(minutes));
   }
 
   const sortedRecords = [...records].sort((a, b) => {
@@ -542,14 +489,12 @@ export default function MeditationLog() {
       await addRecord.mutateAsync({
         date,
         duration: BigInt(dur),
-        moodBefore: BigInt(moodBefore),
-        moodAfter: BigInt(moodAfter),
+        moodBefore: BigInt(3),
+        moodAfter: BigInt(3),
         memo,
       });
       toast.success("記録を保存しました ✨");
       setDuration("");
-      setMoodBefore(3);
-      setMoodAfter(3);
       setMemo("");
       setDate(today);
     } catch {
@@ -566,7 +511,6 @@ export default function MeditationLog() {
     }
   }
 
-  // Show personality select if not yet chosen
   if (!personality) {
     return <PersonalitySelectScreen onSelect={handleSelectPersonality} />;
   }
@@ -595,10 +539,10 @@ export default function MeditationLog() {
             value={formatDuration(totalMinutes)}
           />
           <StatCard
-            ocid="stats.streak.card"
-            icon={<Flame className="w-5 h-5 text-primary" />}
-            label="連続記録日数"
-            value={String(streak)}
+            ocid="stats.days.card"
+            icon={<CalendarDays className="w-5 h-5 text-primary" />}
+            label="記録した日数"
+            value={String(totalDays)}
             unit="日"
           />
         </section>
@@ -620,7 +564,7 @@ export default function MeditationLog() {
         </section>
 
         {/* Timer */}
-        <MeditationTimer />
+        <MeditationTimer onElapsedMinutes={handleTimerElapsed} />
 
         {/* Form */}
         <section>
@@ -629,7 +573,7 @@ export default function MeditationLog() {
               瞑想記録を追加
             </h2>
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="date" className="text-sm font-medium">
                     日付
@@ -658,21 +602,6 @@ export default function MeditationLog() {
                     data-ocid="form.duration.input"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <MoodSelector
-                  value={moodBefore}
-                  onChange={setMoodBefore}
-                  label="瞑想前の気分"
-                  ocidPrefix="form.mood_before"
-                />
-                <MoodSelector
-                  value={moodAfter}
-                  onChange={setMoodAfter}
-                  label="瞑想後の気分"
-                  ocidPrefix="form.mood_after"
-                />
               </div>
 
               <div className="space-y-2">
@@ -766,22 +695,13 @@ export default function MeditationLog() {
                     <div className="w-px self-stretch bg-border" />
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 text-sm text-foreground">
-                        <span className="text-base">
-                          {MOOD_EMOJI[Number(item.record.moodBefore)]}
-                        </span>
-                        <span className="text-muted-foreground text-xs">→</span>
-                        <span className="text-base">
-                          {MOOD_EMOJI[Number(item.record.moodAfter)]}
-                        </span>
-                        <span className="text-xs text-muted-foreground ml-1">
-                          気分 {Number(item.record.moodBefore)} →{" "}
-                          {Number(item.record.moodAfter)}
-                        </span>
-                      </div>
-                      {item.record.memo && (
-                        <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                      {item.record.memo ? (
+                        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                           {item.record.memo}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground/50 italic">
+                          メモなし
                         </p>
                       )}
                     </div>
@@ -853,6 +773,46 @@ export default function MeditationLog() {
         onStayHere={handleStayHere}
         onNextCycle={handleNextCycle}
       />
+
+      {/* Cycle Transition Screen */}
+      <AnimatePresence>
+        {cycleTransition && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-md"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            data-ocid="cycle_transition.modal"
+          >
+            <motion.div
+              className="text-center px-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <motion.p
+                className="text-5xl mb-8"
+                animate={{ rotate: [0, 5, -5, 3, -3, 0], scale: [1, 1.1, 1] }}
+                transition={{
+                  duration: 2,
+                  repeat: Number.POSITIVE_INFINITY,
+                  repeatDelay: 1,
+                }}
+              >
+                🌱
+              </motion.p>
+              <p className="text-2xl font-semibold text-foreground mb-3 tracking-tight">
+                新しい旅が始まります
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                これまでの歩みは、次の木の礎となります。
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
