@@ -198,7 +198,7 @@ function EmpressSprout() {
 
 function SproutForPersonality({ id }: { id: TreePersonality }) {
   if (id === "star") return <StarSprout />;
-  if (id === "foolish") return <FlowSprout />;
+  if (id === "flow") return <FlowSprout />;
   return <EmpressSprout />;
 }
 
@@ -221,7 +221,7 @@ export default function PersonalitySelectScreen({
     description: string;
   }[] = [
     { id: "star", name: t("starName"), description: t("starDesc") },
-    { id: "foolish", name: t("flowName"), description: t("flowDesc") },
+    { id: "flow", name: t("flowName"), description: t("flowDesc") },
     { id: "empress", name: t("empressName"), description: t("empressDesc") },
   ];
 

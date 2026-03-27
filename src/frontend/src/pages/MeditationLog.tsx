@@ -32,7 +32,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-const PERSONALITY_ORDER: TreePersonality[] = ["star", "foolish", "empress"];
+const PERSONALITY_ORDER: TreePersonality[] = ["star", "flow", "empress"];
 const TIMER_STORAGE_KEY = "meditationTimerState";
 const TREE_STATE_STORAGE_KEY = "meditationTreeState";
 
@@ -611,7 +611,7 @@ export default function MeditationLog() {
         }),
       );
       const p = treeState.personality;
-      if (p === "star" || p === "foolish" || p === "empress") {
+      if (p === "star" || p === "flow" || p === "empress") {
         setPersonality(p);
       } else {
         setPersonality(null);

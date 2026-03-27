@@ -135,7 +135,7 @@ export function rollWhisper(
   const phrases =
     personality === "star"
       ? starPhrases
-      : personality === "foolish"
+      : personality === "flow"
         ? flowPhrases
         : empressPhrases;
   return pickRandom(phrases);
