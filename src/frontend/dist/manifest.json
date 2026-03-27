@@ -1,0 +1,13 @@
+{
+  "name": "瞑想ログ",
+  "short_name": "瞑想",
+  "description": "静かな瞑想の記録",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f2ee",
+  "theme_color": "#f5f2ee",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/assets/generated/icon-512.dim_512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -26,7 +26,12 @@ import {
   useSubmitFeedback,
 } from "@/hooks/useQueries";
 import { useLanguage } from "@/i18n";
-import { rollWhisper } from "@/lib/whisperPhrases";
+import {
+  empressPhrases,
+  flowPhrases,
+  rollWhisper,
+  starPhrases,
+} from "@/lib/whisperPhrases";
 import ReviewPage from "@/pages/ReviewPage";
 import { CalendarDays, Clock, Droplets, Loader2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -105,8 +110,12 @@ type TimerStatus = "idle" | "running" | "paused" | "finished";
 
 function MeditationTimer({
   onElapsedMinutes,
+  onTimerFinished,
+  onWhisper,
 }: {
   onElapsedMinutes?: (minutes: number) => void;
+  onTimerFinished?: () => void;
+  onWhisper?: () => void;
 }) {
   const { t } = useLanguage();
   const [targetMinutes, setTargetMinutes] = useState(10);
@@ -120,6 +129,16 @@ function MeditationTimer({
   const statusRef = useRef<TimerStatus>("idle");
   const elapsedMinutesRef = useRef<number>(0);
   const targetMinutesRef = useRef<number>(10);
+  const onTimerFinishedRef = useRef(onTimerFinished);
+  const onWhisperRef = useRef(onWhisper);
+
+  useEffect(() => {
+    onTimerFinishedRef.current = onTimerFinished;
+  }, [onTimerFinished]);
+
+  useEffect(() => {
+    onWhisperRef.current = onWhisper;
+  }, [onWhisper]);
 
   const totalSeconds = targetMinutes * 60;
   const progress =
@@ -132,6 +151,21 @@ function MeditationTimer({
     }
   }, []);
 
+  const handleTimerZero = useCallback(
+    (elapsedMinutes: number) => {
+      clearTimer();
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+      setStatus("finished");
+      playAlarm(audioCtxRef);
+      vibrate([100, 50, 100, 50, 100]);
+      elapsedMinutesRef.current = elapsedMinutes;
+      onElapsedMinutes?.(elapsedMinutes);
+      onTimerFinishedRef.current?.();
+      onWhisperRef.current?.();
+    },
+    [clearTimer, onElapsedMinutes],
+  );
+
   const startInterval = useCallback(() => {
     clearTimer();
     intervalRef.current = setInterval(() => {
@@ -140,16 +174,10 @@ function MeditationTimer({
       const newRemaining = Math.max(0, remainingAtStartRef.current - elapsed);
       setRemaining(newRemaining);
       if (newRemaining === 0) {
-        clearTimer();
-        localStorage.removeItem(TIMER_STORAGE_KEY);
-        setStatus("finished");
-        playAlarm(audioCtxRef);
-        vibrate([100, 50, 100, 50, 100]);
-        elapsedMinutesRef.current = targetMinutesRef.current;
-        onElapsedMinutes?.(targetMinutesRef.current);
+        handleTimerZero(targetMinutesRef.current);
       }
     }, 500);
-  }, [clearTimer, onElapsedMinutes]);
+  }, [clearTimer, handleTimerZero]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only
   useEffect(() => {
@@ -170,12 +198,7 @@ function MeditationTimer({
           startInterval();
         } else {
           // Finished while page was away
-          localStorage.removeItem(TIMER_STORAGE_KEY);
-          setStatus("finished");
-          setRemaining(0);
-          playAlarm(audioCtxRef);
-          vibrate([100, 50, 100, 50, 100]);
-          onElapsedMinutes?.(saved.targetMinutes);
+          handleTimerZero(saved.targetMinutes);
         }
       } else if (saved.status === "paused") {
         targetMinutesRef.current = saved.targetMinutes;
@@ -211,13 +234,7 @@ function MeditationTimer({
         const newRemaining = Math.max(0, remainingAtStartRef.current - elapsed);
         setRemaining(newRemaining);
         if (newRemaining === 0) {
-          clearTimer();
-          localStorage.removeItem(TIMER_STORAGE_KEY);
-          setStatus("finished");
-          playAlarm(audioCtxRef);
-          vibrate([100, 50, 100, 50, 100]);
-          elapsedMinutesRef.current = targetMinutesRef.current;
-          onElapsedMinutes?.(targetMinutesRef.current);
+          handleTimerZero(targetMinutesRef.current);
         }
       }
     }
@@ -225,9 +242,14 @@ function MeditationTimer({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [clearTimer, onElapsedMinutes]);
+  }, [handleTimerZero]);
 
   function handleStart() {
+    // Silently request notification permission when timer starts
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
     let initialRemaining: number;
     if (status === "idle") {
       if (!audioCtxRef.current) {
@@ -562,6 +584,26 @@ function FeedbackSheet() {
   );
 }
 
+async function showTimerNotification() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+  if (Notification.permission === "granted") {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      reg.showNotification("瞑想が終わりました 🙏", {
+        body: "静かに、目を開けてください。",
+        icon: "/assets/generated/icon-512.dim_512x512.png",
+        badge: "/assets/generated/icon-512.dim_512x512.png",
+        silent: false,
+      });
+    } catch {
+      // Service worker not available or notification failed — silent fail
+    }
+  }
+}
+
 export default function MeditationLog() {
   const { t, lang, setLang } = useLanguage();
   const today = getTodayStr();
@@ -586,6 +628,13 @@ export default function MeditationLog() {
   // Stable ref to avoid including setTreeState (mutation object) in effect deps
   const setTreeStateMutateRef = useRef<typeof setTreeState.mutate | null>(null);
   setTreeStateMutateRef.current = setTreeState.mutate;
+
+  // Register service worker on mount
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
 
   // On mount: restore personality from localStorage before backend arrives
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
@@ -644,17 +693,8 @@ export default function MeditationLog() {
   const totalMin = Number(totalMinutes);
   const stage = Math.min(Math.floor(totalMin / 20), 50);
 
-  // Level-up celebration
+  // Level-up: only open cycle modal, no visual overlay
   const prevStageRef = useRef<number | null>(null);
-  const [levelUpStage, setLevelUpStage] = useState<number | null>(null);
-  const levelUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Cleanup level-up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     if (prevStageRef.current !== null && stage > prevStageRef.current) {
@@ -672,17 +712,46 @@ export default function MeditationLog() {
           }
         }
       } else {
-        setLevelUpStage(stage);
+        // Subtle haptic only — no visual announcement
         vibrate([80, 40, 80]);
-        if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-        levelUpTimerRef.current = setTimeout(() => setLevelUpStage(null), 3500);
       }
     }
     prevStageRef.current = stage;
   }, [stage, treeState, personality, stayHere]);
 
+  // Show whisper phrase on app open (mount)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only
+  useEffect(() => {
+    if (personality) {
+      const phrase = rollWhisper(stage, personality);
+      if (phrase) setWhisperPhrase(phrase);
+    }
+  }, []);
+
+  // Show whisper phrase when returning to the app
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible" && personality) {
+        const phrase = rollWhisper(stage, personality);
+        if (phrase) setWhisperPhrase(phrase);
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [personality, stage]);
+
   async function handleSelectPersonality(p: TreePersonality) {
     setPersonality(p);
+    // Write to localStorage immediately so next load can restore without waiting for backend
+    localStorage.setItem(
+      TREE_STATE_STORAGE_KEY,
+      JSON.stringify({
+        personality: p,
+        stayHere: false,
+        cycleIndex: "0",
+      }),
+    );
     await setTreeState.mutateAsync({
       personality: p,
       cycleIndex: BigInt(0),
@@ -695,6 +764,15 @@ export default function MeditationLog() {
     setStayHere(true);
     setCycleCompleteOpen(false);
     if (personality) {
+      // Write to localStorage immediately
+      localStorage.setItem(
+        TREE_STATE_STORAGE_KEY,
+        JSON.stringify({
+          personality,
+          stayHere: true,
+          cycleIndex: String(treeState ? Number(treeState.cycleIndex) : 0),
+        }),
+      );
       await setTreeState.mutateAsync({
         personality,
         cycleIndex: BigInt(treeState ? Number(treeState.cycleIndex) : 0),
@@ -711,6 +789,15 @@ export default function MeditationLog() {
     const nextIndex = currentCycleIndex + 1;
     const nextPersonality =
       PERSONALITY_ORDER[nextIndex % PERSONALITY_ORDER.length];
+    // Write to localStorage immediately
+    localStorage.setItem(
+      TREE_STATE_STORAGE_KEY,
+      JSON.stringify({
+        personality: nextPersonality,
+        stayHere: false,
+        cycleIndex: String(nextIndex),
+      }),
+    );
     await setTreeState.mutateAsync({
       personality: nextPersonality,
       cycleIndex: BigInt(nextIndex),
@@ -726,6 +813,19 @@ export default function MeditationLog() {
 
   function handleTimerElapsed(minutes: number) {
     setDuration(String(minutes));
+  }
+
+  function handleTimerWhisper() {
+    if (personality) {
+      const phrases =
+        personality === "star"
+          ? starPhrases
+          : personality === "flow"
+            ? flowPhrases
+            : empressPhrases;
+      const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+      setWhisperPhrase(phrase);
+    }
   }
 
   const sortedRecords = [...records].sort((a, b) => {
@@ -751,10 +851,6 @@ export default function MeditationLog() {
       });
       toast.success(t("formSuccess"));
       vibrate(50);
-      if (personality) {
-        const phrase = rollWhisper(stage, personality);
-        if (phrase) setWhisperPhrase(phrase);
-      }
       setDuration("");
       setMemo("");
       setDate(today);
@@ -772,8 +868,8 @@ export default function MeditationLog() {
     }
   }
 
-  // Show personality select if not chosen yet (only after zen loader is done)
-  if (!showZenLoader && !personality) {
+  // Show personality select only after zen loader is done AND backend has responded
+  if (!showZenLoader && !personality && treeState !== undefined) {
     return <PersonalitySelectScreen onSelect={handleSelectPersonality} />;
   }
 
@@ -870,7 +966,11 @@ export default function MeditationLog() {
               </section>
 
               {/* Timer */}
-              <MeditationTimer onElapsedMinutes={handleTimerElapsed} />
+              <MeditationTimer
+                onElapsedMinutes={handleTimerElapsed}
+                onTimerFinished={showTimerNotification}
+                onWhisper={handleTimerWhisper}
+              />
 
               {/* Form */}
               <section>
@@ -1060,32 +1160,6 @@ export default function MeditationLog() {
             </a>
           </div>
         </footer>
-
-        {/* Level-up celebration overlay */}
-        <AnimatePresence>
-          {levelUpStage !== null && !showZenLoader && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.7, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: -20 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
-            >
-              <div className="bg-card border-2 border-primary rounded-3xl px-8 py-6 shadow-2xl text-center max-w-xs mx-4">
-                <p className="text-3xl mb-2">✦</p>
-                <p className="text-xl font-bold text-primary mb-1">
-                  {t("levelUpTitle")}
-                </p>
-                <p className="text-base text-foreground">
-                  段階 {levelUpStage} {t("levelUpOf")}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {t("levelUpSubtitle")}
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Cycle Complete Modal */}
         <CycleCompleteModal

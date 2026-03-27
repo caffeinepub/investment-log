@@ -2028,7 +2028,6 @@ export default function PlantGrowth({
 }: PlantGrowthProps) {
   const stage = Math.min(Math.floor(totalMinutes / 20), 50);
   const colors = C[personality];
-  const next = 20 - (totalMinutes % 20);
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -2054,13 +2053,7 @@ export default function PlantGrowth({
         <p className="text-xs text-gray-400 font-medium tracking-wide">
           段階 {stage} / 50
         </p>
-        {stage < 50 ? (
-          <p className="text-xs text-gray-400">次の成長まで {next} 分</p>
-        ) : stayHere ? (
-          <p className="text-xs text-gray-400">この木とともに… ✦</p>
-        ) : (
-          <p className="text-xs text-gray-400">最大段階に到達しました 🌸</p>
-        )}
+        {stayHere && <p className="text-xs text-gray-400">この木とともに… ✦</p>}
       </div>
     </div>
   );

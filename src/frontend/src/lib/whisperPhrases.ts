@@ -4,7 +4,7 @@ export type { TreePersonality };
 
 export const starPhrases: string[] = [
   "希望って、温かいな",
-  "憧れの景色が、近い",
+  "樓れの景色が、近い",
   "奇跡って、ある気がしてきた",
   "直感が、走った",
   "ひらめいた",
@@ -34,7 +34,7 @@ export const flowPhrases: string[] = [
   "非凡でいい",
   "熱狂するって、気持ちいいな",
   "無邪気でいよう",
-  "純真無垢って、強いんだな",
+  "純真無啹って、強いんだな",
   "ゼロから始まるのが、好きだ",
   "また心機一転、気持ちいい",
   "直感力って、磨かれていくな",
@@ -42,14 +42,14 @@ export const flowPhrases: string[] = [
   "可能性しかない",
   "清らかなまま、どこへでも",
   "探求って、終わらないな",
-  "今日は大胆にいこう",
+  "今日は大舃にいこう",
   "成長ってこういうことか",
   "無鉄砲もたまには、いい",
   "はじまりって、いつも新鮮だ",
 ];
 
 export const empressPhrases: string[] = [
-  "豊かさが、溢れてる",
+  "豊かさが、湢れてる",
   "生命力って、すごいな",
   "美しいな、と思う",
   "満足してる、今日も",
@@ -58,12 +58,12 @@ export const empressPhrases: string[] = [
   "努力が、実ってきた",
   "今日はなんか、ゴージャスな気分",
   "繁栄って、静かにやってくる",
-  "感覚が、研ぎ澄まされてる",
+  "感覚が、研ぎ準まされてる",
   "大地の恵みって、こういうことか",
   "環境を、守りたくなる",
   "結実する予感がある",
   "豊穣な季節だ",
-  "愛が、溢れる",
+  "愛が、湢れる",
   "快楽って、自然なことだな",
   "生産性が高い、今日は",
   "母なる大地、という言葉が好きだ",
@@ -86,10 +86,10 @@ const gratitudePhrases: { minStage: number; phrase: string }[] = [
   { minStage: 21, phrase: "ここ、あなたの場所になってきたね。" },
   { minStage: 21, phrase: "あなたが頑張っているの、知ってるよ。" },
   { minStage: 31, phrase: "幸せでいてね、ずっと。" },
-  { minStage: 31, phrase: "来るたび、なんか嬉しくなる。" },
+  { minStage: 31, phrase: "来るたび、なんか嫁しくなる。" },
   { minStage: 31, phrase: "大切に思ってる、ほんとに。" },
   { minStage: 31, phrase: "ここまで来たね、一緒に。" },
-  { minStage: 31, phrase: "そばにいてくれて、嬉しい。" },
+  { minStage: 31, phrase: "そばにいてくれて、嫁しい。" },
   { minStage: 31, phrase: "あなたの魅力が増している。" },
   { minStage: 41, phrase: "あなたに、救われてる。" },
   { minStage: 41, phrase: "ここまで育ったの、あなたのおかげ。" },
@@ -106,9 +106,10 @@ export function rollWhisper(
   stage: number,
   personality: TreePersonality,
 ): string | null {
-  // Stage-based whisper probability
+  // Stage-based whisper probability — increased for early stages
   let whisperChance: number;
-  if (stage <= 10) whisperChance = 0.2;
+  if (stage <= 5) whisperChance = 0.7;
+  else if (stage <= 10) whisperChance = 0.5;
   else if (stage <= 20) whisperChance = 0.3;
   else if (stage <= 30) whisperChance = 0.4;
   else if (stage <= 40) whisperChance = 0.55;
