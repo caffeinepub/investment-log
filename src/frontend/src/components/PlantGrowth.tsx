@@ -855,7 +855,7 @@ function StarTree({
   );
 }
 
-// FLOW TREE — Tarot "The Fool": freedom, wandering, carefree, maiwee
+// FLOW TREE — Tarot "The Fool": freedom, wandering, carefree, マイウェイ
 function FlowTree({
   stage,
   colors: baseColors,
@@ -869,91 +869,118 @@ function FlowTree({
 
   const baseY = 245;
   const trunkBaseX = 108;
+  // Dramatic lean from early — Flow leans hard left
+  const leanAmount = 26 + p2 * 10 + p3 * 5;
   const trunkH = lerp(
     6,
-    82,
+    80,
     p1 * 0.5 +
       p2 * 0.3 +
       p3 * 0.15 +
       (stage >= 39 ? Math.min((stage - 39) / 11, 1) * 0.05 : 0),
   );
-  // Lean LEFT noticeably from stage 1 — emphasize from the very start
-  const leanAmount = 22 + p2 * 9 + p3 * 4;
   const trunkTopX = trunkBaseX - leanAmount;
   const trunkTopY = baseY - trunkH;
-  const trunkW = 3.5 + p1 * 2.5 + p2 * 1.5;
+  const trunkW = 3.2 + p1 * 2.2 + p2 * 1.4;
 
+  // Trunk path with slight organic curve (not too straight)
   const trunkPath = [
     `M ${trunkBaseX - trunkW * 0.6} ${baseY}`,
-    `C ${trunkBaseX - trunkW * 0.8} ${baseY - trunkH * 0.45} ${trunkTopX - trunkW * 0.6} ${trunkTopY + 14} ${trunkTopX - trunkW * 0.45} ${trunkTopY}`,
-    `L ${trunkTopX + trunkW * 0.55} ${trunkTopY}`,
-    `C ${trunkTopX + trunkW * 0.7} ${trunkTopY + 14} ${trunkBaseX + trunkW * 0.9} ${baseY - trunkH * 0.45} ${trunkBaseX + trunkW * 0.6} ${baseY}`,
+    `C ${trunkBaseX - trunkW * 1.1} ${baseY - trunkH * 0.4} ${trunkTopX - trunkW * 0.5} ${trunkTopY + 18} ${trunkTopX - trunkW * 0.4} ${trunkTopY}`,
+    `L ${trunkTopX + trunkW * 0.6} ${trunkTopY}`,
+    `C ${trunkTopX + trunkW * 0.8} ${trunkTopY + 16} ${trunkBaseX + trunkW * 0.85} ${baseY - trunkH * 0.38} ${trunkBaseX + trunkW * 0.6} ${baseY}`,
     "Z",
   ].join(" ");
 
-  const lrx = 11;
-  const lry = 8;
+  const lrx = 10;
+  const lry = 7.5;
 
+  // Left main branch — long, reaching further left (Flow's dominant side)
   const branchRootX = trunkTopX;
-  const branchRootY = trunkTopY + trunkH * 0.15;
-  const branchCtrlX = branchRootX - 22;
-  const branchCtrlY = branchRootY + 12;
-  const branchTipX = lerp(branchRootX, branchRootX - 50, p2);
-  const branchTipY = lerp(branchRootY, branchRootY - 5, p2);
+  const branchRootY = trunkTopY + trunkH * 0.12;
+  const branchCtrlX = branchRootX - 28;
+  const branchCtrlY = branchRootY + 10;
+  const branchTipX = lerp(branchRootX, branchRootX - 54, p2);
+  const branchTipY = lerp(branchRootY, branchRootY - 8, p2);
   const mainBW = 2.5 + p1 * 0.8;
 
-  const rbRootX = trunkTopX + 2;
-  const rbRootY = trunkTopY + trunkH * 0.3;
-  const rbTipX = rbRootX + 35 * p2;
-  const rbTipY = rbRootY + 8 * p2;
-  const rbCtrlX = rbRootX + 18;
-  const rbCtrlY = rbRootY - 5;
+  // Right branch — noticeably shorter, droopier (the reluctant side)
+  const rbRootX = trunkTopX + 3;
+  const rbRootY = trunkTopY + trunkH * 0.35;
+  const rbTipX = rbRootX + 28 * p2;
+  const rbTipY = rbRootY + 12 * p2; // droops down
+  const rbCtrlX = rbRootX + 14;
+  const rbCtrlY = rbRootY + 2; // slouchy
 
-  const sb3RootX = branchRootX - 8;
-  const sb3RootY = branchRootY + trunkH * 0.25;
-  const sb3TipX = sb3RootX - 20 * p3;
-  const sb3TipY = sb3RootY - 35 * p3;
+  // Third wandering branch (stage 20+) — goes right then curves back up unexpectedly
+  const sb3P = stage >= 20 ? Math.min((stage - 20) / 10, 1) : 0;
+  const sb3RootX = branchRootX - 14;
+  const sb3RootY = branchRootY + trunkH * 0.22;
+  const sb3MidX = sb3RootX + 22 * sb3P;
+  const sb3MidY = sb3RootY + 8 * sb3P;
+  const sb3TipX = sb3RootX + 12 * sb3P;
+  const sb3TipY = sb3RootY - 28 * sb3P;
 
   const budX = branchTipX;
   const budY = branchTipY - 9;
 
-  // Secondary exploratory tendril (right, organic) appears at stage 8
-  const tendrP = stage >= 8 ? Math.min((stage - 8) / 5, 1) : 0;
-  const tendrRootX = trunkTopX + trunkW * 0.3;
-  const tendrRootY = trunkTopY + trunkH * 0.4;
-  const tendrTipX = tendrRootX + 18 * tendrP;
-  const tendrTipY = tendrRootY - 22 * tendrP;
-  const tendrCtrlX = tendrRootX + 8;
-  const tendrCtrlY = tendrRootY - 10;
+  // Wandering tendril at stage 6 — goes in unexpected direction (up-right from lean)
+  const tendrP = stage >= 6 ? Math.min((stage - 6) / 6, 1) : 0;
+  const tendrRootX = trunkTopX + trunkW * 0.4;
+  const tendrRootY = trunkTopY + trunkH * 0.45;
+  const tendrTipX = tendrRootX + 20 * tendrP;
+  const tendrTipY = tendrRootY - 18 * tendrP;
+  const tendrCtrlX = tendrRootX + 12;
+  const tendrCtrlY = tendrRootY - 6;
 
   return (
     <g>
+      {/* STAGE 1: Birth — a playful curved shoot that popped out sideways */}
       {stage === 1 && (
         <motion.g
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.9 }}
         >
-          {/* curved hooked shoot leaning left — strong lean from birth */}
+          {/* Main curved shoot leaning left with a whimsical hook */}
           <path
-            d="M 108 240 Q 98 220 88 208"
-            stroke="hsl(78, 45%, 52%)"
+            d="M 108 242 C 100 228 90 218 82 208 Q 78 202 80 197"
+            stroke="hsl(82, 52%, 48%)"
             strokeWidth={2.8}
             fill="none"
             strokeLinecap="round"
           />
-          {/* rounded bud at tip */}
-          <circle cx={87} cy={205} r={5} fill="hsl(78, 45%, 55%)" />
-          <circle
-            cx={87}
-            cy={205}
-            r={2.5}
-            fill="hsl(78, 55%, 72%)"
+          {/* Tiny left leaf bud — tilted like it got blown sideways */}
+          <ellipse
+            cx={76}
+            cy={200}
+            rx={5.5}
+            ry={3}
+            fill="hsl(82, 52%, 52%)"
+            transform="rotate(-38 76 200)"
+          />
+          <ellipse
+            cx={76}
+            cy={200}
+            rx={2.5}
+            ry={1.5}
+            fill="hsl(82, 62%, 68%)"
             opacity={0.7}
+            transform="rotate(-38 76 200)"
+          />
+          {/* Small secondary tendril going the other way — just because */}
+          <path
+            d="M 96 222 Q 103 216 106 210"
+            stroke="hsl(82, 48%, 50%)"
+            strokeWidth={1.5}
+            fill="none"
+            strokeLinecap="round"
+            opacity={0.65}
           />
         </motion.g>
       )}
 
+      {/* Trunk appears at stage 2 */}
       {stage >= 2 && (
         <motion.path
           d={trunkPath}
@@ -964,81 +991,87 @@ function FlowTree({
         />
       )}
 
-      {/* Leaves stages 2-10 with asymmetric, tilted placement */}
+      {/* STAGE 2: First leaves — one reaching FAR left, one tiny right. Asymmetry from day 1 */}
       {stage >= 2 && (
         <Leaf
-          cx={trunkTopX - 12}
-          cy={trunkTopY - 3}
-          rx={lrx * 0.72}
-          ry={lry * 0.72}
-          angle={-28}
+          cx={trunkTopX - 16}
+          cy={trunkTopY - 2}
+          rx={lrx * 0.9}
+          ry={lry * 0.85}
+          angle={-42}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
+      {/* Right leaf: notably smaller and less confident */}
+      {stage >= 2 && (
+        <Leaf
+          cx={trunkTopX + 7}
+          cy={trunkTopY - 1}
+          rx={lrx * 0.48}
+          ry={lry * 0.48}
+          angle={18}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+
+      {/* STAGE 3: Third leaf, dramatically angled — going its own way */}
       {stage >= 3 && (
         <Leaf
-          cx={trunkTopX + 9}
-          cy={trunkTopY - 5}
-          rx={lrx * 0.58}
-          ry={lry * 0.58}
-          angle={22}
+          cx={trunkTopX - 22}
+          cy={trunkTopY - 11}
+          rx={lrx * 0.78}
+          ry={lry * 0.75}
+          angle={-48}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {/* Stage 4: third leaf, notably tilted */}
+
+      {/* STAGE 4: More asymmetry — left side keeps growing, right barely responds */}
       {stage >= 4 && (
         <Leaf
-          cx={trunkTopX - 18}
-          cy={trunkTopY - 10}
-          rx={lrx * 0.68}
+          cx={trunkTopX - 8}
+          cy={trunkTopY - 18}
+          rx={lrx * 0.7}
           ry={lry * 0.68}
-          angle={-35}
+          angle={-22}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {/* Stage 5-7: irregular placement — Flow's wandering nature */}
+      {stage >= 4 && (
+        <Leaf
+          cx={trunkTopX + 10}
+          cy={trunkTopY - 8}
+          rx={lrx * 0.42}
+          ry={lry * 0.42}
+          angle={28}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+
+      {/* STAGE 5: Wide left reach, irregular placement */}
       {stage >= 5 && (
         <Leaf
-          cx={trunkTopX + 3}
-          cy={trunkTopY - 17}
-          rx={lrx * 0.62}
-          ry={lry * 0.62}
-          angle={12}
+          cx={trunkTopX - 28}
+          cy={trunkTopY - 5}
+          rx={lrx * 0.82}
+          ry={lry * 0.78}
+          angle={-44}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
-      {stage >= 6 && (
-        <Leaf
-          cx={trunkTopX - 22}
-          cy={trunkTopY - 6}
-          rx={lrx * 0.7}
-          ry={lry * 0.65}
-          angle={-40}
-          fill={colors.leaf}
-          fillHL={colors.leafHL}
-        />
-      )}
-      {stage >= 7 && (
-        <Leaf
-          cx={trunkTopX - 8}
-          cy={trunkTopY - 22}
-          rx={lrx * 0.65}
-          ry={lry * 0.62}
-          angle={-8}
-          fill={colors.leaf}
-          fillHL={colors.leafHL}
-        />
-      )}
-      {/* Stage 8: tendril appears, leaf at base of it */}
-      {stage >= 8 && tendrP > 0 && (
+
+      {/* STAGE 6: Wandering tendril appears — goes right, against the lean */}
+      {stage >= 6 && tendrP > 0 && (
         <motion.path
           d={`M ${tendrRootX} ${tendrRootY} Q ${tendrCtrlX} ${tendrCtrlY} ${tendrTipX} ${tendrTipY}`}
           stroke={colors.trunk}
-          strokeWidth={1.4}
+          strokeWidth={1.3}
           fill="none"
           strokeLinecap="round"
           initial={{ opacity: 0 }}
@@ -1046,40 +1079,93 @@ function FlowTree({
           transition={{ duration: 0.7 }}
         />
       )}
-      {stage >= 8 && (
+      {stage >= 6 && (
         <Leaf
-          cx={trunkTopX + 6}
-          cy={trunkTopY - 28}
-          rx={lrx * 0.6}
-          ry={lry * 0.6}
-          angle={16}
+          cx={trunkTopX - 4}
+          cy={trunkTopY - 25}
+          rx={lrx * 0.65}
+          ry={lry * 0.62}
+          angle={8}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
+
+      {/* STAGE 7: More dramatic angles — left cluster building */}
+      {stage >= 7 && (
+        <Leaf
+          cx={trunkTopX - 32}
+          cy={trunkTopY - 14}
+          rx={lrx * 0.76}
+          ry={lry * 0.72}
+          angle={-50}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+
+      {/* STAGE 8: Leaf at tendril tip — the wanderer has a leaf now */}
+      {stage >= 8 && (
+        <Leaf
+          cx={tendrTipX + 4}
+          cy={tendrTipY - 3}
+          rx={lrx * 0.55}
+          ry={lry * 0.52}
+          angle={22}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 8 && (
+        <Leaf
+          cx={trunkTopX - 14}
+          cy={trunkTopY - 30}
+          rx={lrx * 0.68}
+          ry={lry * 0.65}
+          angle={-12}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+
+      {/* STAGE 9: Left side keeps sprawling */}
       {stage >= 9 && (
         <Leaf
-          cx={tendrTipX + 5}
-          cy={tendrTipY - 4}
-          rx={lrx * 0.55}
-          ry={lry * 0.55}
-          angle={20}
+          cx={trunkTopX - 38}
+          cy={trunkTopY - 8}
+          rx={lrx * 0.72}
+          ry={lry * 0.68}
+          angle={-46}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+
+      {/* STAGE 10: Another unexpected right-side leaf — smaller */}
+      {stage >= 10 && (
+        <Leaf
+          cx={trunkTopX + 14}
+          cy={trunkTopY - 14}
+          rx={lrx * 0.5}
+          ry={lry * 0.48}
+          angle={35}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 10 && (
         <Leaf
-          cx={trunkTopX - 26}
-          cy={trunkTopY - 2}
-          rx={lrx * 0.65}
-          ry={lry * 0.6}
-          angle={-38}
+          cx={trunkTopX - 20}
+          cy={trunkTopY - 36}
+          rx={lrx * 0.62}
+          ry={lry * 0.58}
+          angle={-6}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
 
+      {/* LEFT main branch (stage 13+) */}
       {stage >= 13 && (
         <motion.path
           d={`M ${branchRootX} ${branchRootY} Q ${branchCtrlX} ${branchCtrlY} ${branchTipX} ${branchTipY}`}
@@ -1092,11 +1178,12 @@ function FlowTree({
           transition={{ duration: 0.7 }}
         />
       )}
+      {/* RIGHT branch — shorter, droopier */}
       {stage >= 14 && (
         <motion.path
           d={`M ${rbRootX} ${rbRootY} Q ${rbCtrlX} ${rbCtrlY} ${rbTipX} ${rbTipY}`}
           stroke={colors.trunk}
-          strokeWidth={mainBW * 0.75}
+          strokeWidth={mainBW * 0.65}
           fill="none"
           strokeLinecap="round"
           initial={{ opacity: 0 }}
@@ -1106,114 +1193,148 @@ function FlowTree({
       )}
       {stage >= 14 && (
         <Leaf
-          cx={branchTipX + 7}
-          cy={branchTipY - 2}
-          rx={lrx}
-          ry={lry}
-          angle={-8}
+          cx={branchTipX + 6}
+          cy={branchTipY - 4}
+          rx={lrx * 1.0}
+          ry={lry * 0.95}
+          angle={-10}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 15 && (
         <Leaf
-          cx={branchTipX - 4}
-          cy={branchTipY - 9}
+          cx={branchTipX - 6}
+          cy={branchTipY - 11}
           rx={lrx * 0.88}
-          ry={lry * 0.88}
-          angle={-25}
+          ry={lry * 0.85}
+          angle={-30}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
+      {/* Right branch has smaller, droopier leaves */}
       {stage >= 15 && (
         <Leaf
-          cx={rbTipX + 5}
-          cy={rbTipY - 3}
-          rx={lrx * 0.78}
-          ry={lry * 0.78}
-          angle={15}
+          cx={rbTipX + 4}
+          cy={rbTipY + 2}
+          rx={lrx * 0.65}
+          ry={lry * 0.62}
+          angle={22}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 17 && (
         <Leaf
-          cx={lerp(branchRootX, branchTipX, 0.5) + 2}
-          cy={lerp(branchRootY, branchTipY, 0.5) - 6}
-          rx={lrx * 0.75}
-          ry={lry * 0.75}
-          angle={-16}
+          cx={lerp(branchRootX, branchTipX, 0.48) + 3}
+          cy={lerp(branchRootY, branchTipY, 0.48) - 7}
+          rx={lrx * 0.78}
+          ry={lry * 0.74}
+          angle={-18}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 19 && (
         <Leaf
-          cx={branchTipX + 10}
-          cy={branchTipY + 7}
-          rx={lrx * 0.82}
-          ry={lry * 0.82}
-          angle={12}
-          fill={colors.leaf}
-          fillHL={colors.leafHL}
-        />
-      )}
-
-      {stage >= 26 && (
-        <motion.line
-          x1={sb3RootX}
-          y1={sb3RootY}
-          x2={sb3TipX}
-          y2={sb3TipY}
-          stroke={colors.trunk}
-          strokeWidth={1.8 + p2 * 0.6}
-          strokeLinecap="round"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-        />
-      )}
-      {stage >= 27 && (
-        <Leaf
-          cx={sb3TipX - 5}
-          cy={sb3TipY - 5}
-          rx={lrx * 0.88}
-          ry={lry * 0.88}
-          angle={-22}
-          fill={colors.leaf}
-          fillHL={colors.leafHL}
-        />
-      )}
-      {stage >= 28 && (
-        <Leaf
-          cx={sb3TipX + 7}
-          cy={sb3TipY - 3}
-          rx={lrx * 0.8}
+          cx={branchTipX + 9}
+          cy={branchTipY + 6}
+          rx={lrx * 0.84}
           ry={lry * 0.8}
           angle={14}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
+
+      {/* STAGE 20+: Third branch — goes right then curves back up (surprise!) */}
+      {stage >= 20 && sb3P > 0 && (
+        <motion.path
+          d={`M ${sb3RootX} ${sb3RootY} C ${sb3MidX} ${sb3MidY} ${sb3MidX + 8} ${(sb3MidY + sb3TipY) / 2} ${sb3TipX} ${sb3TipY}`}
+          stroke={colors.trunk}
+          strokeWidth={1.6 + p2 * 0.5}
+          fill="none"
+          strokeLinecap="round"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+        />
+      )}
+      {stage >= 22 && (
+        <Leaf
+          cx={sb3TipX - 4}
+          cy={sb3TipY - 6}
+          rx={lrx * 0.86}
+          ry={lry * 0.82}
+          angle={-24}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 24 && (
+        <Leaf
+          cx={sb3TipX + 8}
+          cy={sb3TipY - 2}
+          rx={lrx * 0.76}
+          ry={lry * 0.72}
+          angle={16}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+
+      {stage >= 26 && (
+        <Leaf
+          cx={branchTipX - 14}
+          cy={branchTipY - 8}
+          rx={lrx * 0.9}
+          ry={lry * 0.86}
+          angle={-34}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 27 && (
+        <Leaf
+          cx={sb3TipX - 10}
+          cy={sb3TipY + 4}
+          rx={lrx * 0.82}
+          ry={lry * 0.78}
+          angle={-14}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
+      {stage >= 28 && (
+        <Leaf
+          cx={branchTipX + 12}
+          cy={branchTipY - 2}
+          rx={lrx * 0.78}
+          ry={lry * 0.74}
+          angle={10}
+          fill={colors.leaf}
+          fillHL={colors.leafHL}
+        />
+      )}
       {stage >= 29 && (
         <Leaf
-          cx={branchTipX - 12}
-          cy={branchTipY - 5}
-          rx={lrx * 0.78}
-          ry={lry * 0.78}
-          angle={-30}
+          cx={rbTipX - 4}
+          cy={rbTipY + 10}
+          rx={lrx * 0.72}
+          ry={lry * 0.68}
+          angle={24}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
       )}
       {stage >= 30 && (
         <Leaf
-          cx={rbTipX - 5}
-          cy={rbTipY + 8}
-          rx={lrx * 0.75}
-          ry={lry * 0.75}
-          angle={20}
+          cx={sb3TipX + 14}
+          cy={sb3TipY - 12}
+          rx={lrx * 0.76}
+          ry={lry * 0.72}
+          angle={-8}
           fill={colors.leaf}
           fillHL={colors.leafHL}
         />
@@ -1222,9 +1343,9 @@ function FlowTree({
       {stage >= 39 && (
         <Leaf
           cx={branchTipX - 5}
-          cy={branchTipY + 9}
-          rx={lrx * 0.9}
-          ry={lry * 0.9}
+          cy={branchTipY + 10}
+          rx={lrx * 0.92}
+          ry={lry * 0.88}
           angle={8}
           fill={colors.leaf}
           fillHL={colors.leafHL}
@@ -1233,11 +1354,11 @@ function FlowTree({
       )}
       {stage >= 40 && (
         <Leaf
-          cx={sb3TipX - 15}
-          cy={sb3TipY - 10}
-          rx={lrx * 0.82}
-          ry={lry * 0.82}
-          angle={-36}
+          cx={sb3TipX - 18}
+          cy={sb3TipY - 8}
+          rx={lrx * 0.84}
+          ry={lry * 0.8}
+          angle={-40}
           fill={colors.leaf}
           fillHL={colors.leafHL}
           delay={0.15}
@@ -1256,7 +1377,6 @@ function FlowTree({
     </g>
   );
 }
-
 // EMPRESS TREE — Tarot "The Empress": abundance, motherly, lush, wide sheltering canopy
 function EmpressTree({
   stage,
