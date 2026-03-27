@@ -18,7 +18,6 @@ export default function ZenLoadingScreen({ isReady, onDone }: Props) {
     onDoneRef.current = onDone;
   });
 
-  // Track readiness separately so we can react when it becomes true
   useEffect(() => {
     readyRef.current = isReady;
     if (isReady && timerDoneRef.current) {
@@ -26,15 +25,23 @@ export default function ZenLoadingScreen({ isReady, onDone }: Props) {
     }
   }, [isReady]);
 
-  // 3-second minimum timer
+  // 3秒最低表示、5秒で強制終了
   useEffect(() => {
-    const id = setTimeout(() => {
+    const minTimer = setTimeout(() => {
       timerDoneRef.current = true;
       if (readyRef.current) {
         setVisible(false);
       }
     }, 3000);
-    return () => clearTimeout(id);
+
+    const maxTimer = setTimeout(() => {
+      setVisible(false);
+    }, 5000);
+
+    return () => {
+      clearTimeout(minTimer);
+      clearTimeout(maxTimer);
+    };
   }, []);
 
   return (
