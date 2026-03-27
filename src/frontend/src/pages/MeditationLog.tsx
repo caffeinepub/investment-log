@@ -3,6 +3,7 @@ import CycleCompleteModal from "@/components/CycleCompleteModal";
 import PersonalitySelectScreen from "@/components/PersonalitySelectScreen";
 import PlantGrowth, { type TreePersonality } from "@/components/PlantGrowth";
 import { WhisperBubble } from "@/components/WhisperBubble";
+import ZenLoadingScreen from "@/components/ZenLoadingScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -565,6 +566,7 @@ export default function MeditationLog() {
   const { t, lang, setLang } = useLanguage();
   const today = getTodayStr();
   const [date, setDate] = useState(today);
+  const [showZenLoader, setShowZenLoader] = useState(true);
   const [duration, setDuration] = useState("");
   const [memo, setMemo] = useState("");
 
@@ -752,357 +754,368 @@ export default function MeditationLog() {
     }
   }
 
-  // Show personality select if not chosen yet
-  if (!personality || treeState?.personality === "") {
+  // Show personality select if not chosen yet (only after zen loader is done)
+  if (!showZenLoader && (!personality || treeState?.personality === "")) {
     return <PersonalitySelectScreen onSelect={handleSelectPersonality} />;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
-            <Droplets className="w-5 h-5 text-primary" />
-          </div>
-          <h1 className="text-lg font-semibold text-foreground tracking-tight">
-            {t("appTitle")}
-          </h1>
-          <button
-            type="button"
-            onClick={() => setLang(lang === "ja" ? "en" : "ja")}
-            className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-secondary"
-            data-ocid="header.lang.toggle"
-          >
-            <span className="text-muted-foreground">{t("langToggle")}:</span>
-            <span className="font-medium text-foreground ml-1">
-              {lang === "ja" ? "日本語" : "English"}
-            </span>
-          </button>
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
-        <Tabs defaultValue="record" className="w-full">
-          <TabsList className="w-full mb-6 rounded-xl" data-ocid="main.tab">
-            <TabsTrigger
-              value="record"
-              className="flex-1 rounded-lg"
-              data-ocid="main.record.tab"
-            >
-              {t("tabRecord")}
-            </TabsTrigger>
-            <TabsTrigger
-              value="review"
-              className="flex-1 rounded-lg"
-              data-ocid="main.review.tab"
-            >
-              {t("tabReview")}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="record" className="space-y-8 mt-0">
-            {/* Stats */}
-            <section
-              className="grid grid-cols-2 gap-4"
-              data-ocid="stats.section"
-            >
-              <StatCard
-                ocid="stats.total_time.card"
-                icon={<Clock className="w-5 h-5 text-primary" />}
-                label={t("statsTotalTime")}
-                value={formatDuration(totalMinutes)}
-              />
-              <StatCard
-                ocid="stats.days.card"
-                icon={<CalendarDays className="w-5 h-5 text-primary" />}
-                label={t("statsDays")}
-                value={String(totalDays)}
-                unit={t("statsDaysUnit")}
-              />
-            </section>
-
-            {/* Plant Growth */}
-            <section data-ocid="plant.section">
-              <div className="bg-card rounded-2xl shadow-card p-6 flex flex-col items-center gap-2">
-                <div className="w-full mb-2">
-                  <h2 className="text-base font-semibold text-foreground">
-                    {t("yourTree")}
-                  </h2>
-                </div>
-                <PlantGrowth
-                  totalMinutes={totalMin}
-                  personality={personality}
-                  stayHere={stayHere}
-                />
-                <WhisperBubble
-                  phrase={whisperPhrase}
-                  onDone={() => setWhisperPhrase(null)}
-                />
-              </div>
-            </section>
-
-            {/* Timer */}
-            <MeditationTimer onElapsedMinutes={handleTimerElapsed} />
-
-            {/* Form */}
-            <section>
-              <div className="bg-card rounded-2xl shadow-card p-6">
-                <h2 className="text-base font-semibold text-foreground mb-6">
-                  {t("formTitle")}
-                </h2>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="date" className="text-sm font-medium">
-                        {t("formDate")}
-                      </Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="rounded-lg border-border"
-                        data-ocid="form.date.input"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="duration" className="text-sm font-medium">
-                        {t("formDuration")}
-                      </Label>
-                      <Input
-                        id="duration"
-                        type="number"
-                        min={1}
-                        placeholder={t("formDurationPlaceholder")}
-                        value={duration}
-                        onChange={(e) => setDuration(e.target.value)}
-                        className="rounded-lg border-border"
-                        data-ocid="form.duration.input"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="memo" className="text-sm font-medium">
-                      {t("formMemo")}
-                    </Label>
-                    <Textarea
-                      id="memo"
-                      placeholder={t("formMemoPlaceholder")}
-                      value={memo}
-                      onChange={(e) => setMemo(e.target.value)}
-                      rows={3}
-                      className="rounded-lg border-border resize-none"
-                      data-ocid="form.memo.textarea"
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium"
-                    disabled={addRecord.isPending}
-                    data-ocid="form.submit_button"
-                  >
-                    {addRecord.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t("formSaving")}
-                      </>
-                    ) : (
-                      t("formSubmit")
-                    )}
-                  </Button>
-                </form>
-              </div>
-            </section>
-
-            {/* Records list */}
-            <section>
-              <h2 className="text-base font-semibold text-foreground mb-4">
-                {t("pastRecords")}
-              </h2>
-
-              {recordsLoading ? (
-                <div
-                  className="flex justify-center py-12"
-                  data-ocid="records.loading_state"
-                >
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-              ) : sortedRecords.length === 0 ? (
-                <div
-                  className="bg-card rounded-2xl shadow-card p-10 text-center"
-                  data-ocid="records.empty_state"
-                >
-                  <p className="text-4xl mb-3">🌿</p>
-                  <p className="text-muted-foreground text-sm">
-                    {t("emptyStateTitle")}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {t("emptyStateSubtitle")}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <AnimatePresence initial={false}>
-                    {sortedRecords.map((item, idx) => (
-                      <motion.div
-                        key={String(item.id)}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -16 }}
-                        transition={{ duration: 0.2, delay: idx * 0.04 }}
-                        data-ocid={`records.item.${idx + 1}`}
-                        className="bg-card rounded-2xl shadow-card p-5 flex gap-4 items-start"
-                      >
-                        <div className="shrink-0 min-w-[80px] text-center">
-                          <p className="text-xs font-semibold text-primary">
-                            {item.record.date.slice(5).replace("-", "/")}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {item.record.date.slice(0, 4)}
-                          </p>
-                          <div className="mt-2 bg-secondary rounded-lg px-2 py-1">
-                            <p className="text-sm font-bold text-primary">
-                              {Number(item.record.duration)}
-                              <span className="text-xs font-normal">
-                                {t("durationUnit")}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="w-px self-stretch bg-border" />
-
-                        <div className="flex-1 min-w-0">
-                          {item.record.memo ? (
-                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                              {item.record.memo}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground/50 italic">
-                              {t("noMemo")}
-                            </p>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item.id)}
-                          disabled={deleteRecord.isPending}
-                          data-ocid={`records.delete_button.${idx + 1}`}
-                          className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-opacity hover:opacity-80 disabled:opacity-40"
-                          style={{ backgroundColor: "oklch(0.86 0.04 15)" }}
-                          aria-label="削除"
-                        >
-                          <Trash2
-                            className="w-4 h-4"
-                            style={{ color: "oklch(0.45 0.08 15)" }}
-                          />
-                        </button>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              )}
-            </section>
-          </TabsContent>
-
-          <TabsContent value="review" className="mt-0">
-            <ReviewPage records={records} totalMinutes={totalMinutes} />
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      {/* Footer */}
-      <footer className="text-center py-8 text-xs text-muted-foreground space-y-3">
-        <FeedbackSheet />
-        <div>
-          © {new Date().getFullYear()}. Built with love using{" "}
-          <a
-            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-2 hover:text-foreground transition-colors"
-          >
-            caffeine.ai
-          </a>
-        </div>
-      </footer>
-
-      {/* Level-up celebration overlay */}
-      <AnimatePresence>
-        {levelUpStage !== null && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.7, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -20 }}
-            transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
-          >
-            <div className="bg-card border-2 border-primary rounded-3xl px-8 py-6 shadow-2xl text-center max-w-xs mx-4">
-              <p className="text-3xl mb-2">✦</p>
-              <p className="text-xl font-bold text-primary mb-1">
-                {t("levelUpTitle")}
-              </p>
-              <p className="text-base text-foreground">
-                段階 {levelUpStage} {t("levelUpOf")}
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {t("levelUpSubtitle")}
-              </p>
+    <>
+      {showZenLoader && (
+        <ZenLoadingScreen
+          isReady={treeState !== undefined}
+          onDone={() => setShowZenLoader(false)}
+        />
+      )}
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="bg-card border-b border-border sticky top-0 z-10">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+              <Droplets className="w-5 h-5 text-primary" />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Cycle Complete Modal */}
-      <CycleCompleteModal
-        open={cycleCompleteOpen}
-        onStayHere={handleStayHere}
-        onNextCycle={handleNextCycle}
-      />
-
-      {/* Cycle Transition Screen */}
-      <AnimatePresence>
-        {cycleTransition && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            data-ocid="cycle_transition.modal"
-          >
-            <motion.div
-              className="text-center px-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
+            <h1 className="text-lg font-semibold text-foreground tracking-tight">
+              {t("appTitle")}
+            </h1>
+            <button
+              type="button"
+              onClick={() => setLang(lang === "ja" ? "en" : "ja")}
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-secondary"
+              data-ocid="header.lang.toggle"
             >
-              <motion.p
-                className="text-5xl mb-8"
-                animate={{ rotate: [0, 5, -5, 3, -3, 0], scale: [1, 1.1, 1] }}
-                transition={{
-                  duration: 2,
-                  repeat: Number.POSITIVE_INFINITY,
-                  repeatDelay: 1,
-                }}
+              <span className="text-muted-foreground">{t("langToggle")}:</span>
+              <span className="font-medium text-foreground ml-1">
+                {lang === "ja" ? "日本語" : "English"}
+              </span>
+            </button>
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+          <Tabs defaultValue="record" className="w-full">
+            <TabsList className="w-full mb-6 rounded-xl" data-ocid="main.tab">
+              <TabsTrigger
+                value="record"
+                className="flex-1 rounded-lg"
+                data-ocid="main.record.tab"
               >
-                🌱
-              </motion.p>
-              <p className="text-2xl font-semibold text-foreground mb-3 tracking-tight">
-                {t("cycleTransitionTitle")}
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {t("cycleTransitionBody")}
-              </p>
+                {t("tabRecord")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="review"
+                className="flex-1 rounded-lg"
+                data-ocid="main.review.tab"
+              >
+                {t("tabReview")}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="record" className="space-y-8 mt-0">
+              {/* Stats */}
+              <section
+                className="grid grid-cols-2 gap-4"
+                data-ocid="stats.section"
+              >
+                <StatCard
+                  ocid="stats.total_time.card"
+                  icon={<Clock className="w-5 h-5 text-primary" />}
+                  label={t("statsTotalTime")}
+                  value={formatDuration(totalMinutes)}
+                />
+                <StatCard
+                  ocid="stats.days.card"
+                  icon={<CalendarDays className="w-5 h-5 text-primary" />}
+                  label={t("statsDays")}
+                  value={String(totalDays)}
+                  unit={t("statsDaysUnit")}
+                />
+              </section>
+
+              {/* Plant Growth */}
+              <section data-ocid="plant.section">
+                <div className="bg-card rounded-2xl shadow-card p-6 flex flex-col items-center gap-2">
+                  <div className="w-full mb-2">
+                    <h2 className="text-base font-semibold text-foreground">
+                      {t("yourTree")}
+                    </h2>
+                  </div>
+                  <PlantGrowth
+                    totalMinutes={totalMin}
+                    personality={personality ?? "star"}
+                    stayHere={stayHere}
+                  />
+                  <WhisperBubble
+                    phrase={whisperPhrase}
+                    onDone={() => setWhisperPhrase(null)}
+                  />
+                </div>
+              </section>
+
+              {/* Timer */}
+              <MeditationTimer onElapsedMinutes={handleTimerElapsed} />
+
+              {/* Form */}
+              <section>
+                <div className="bg-card rounded-2xl shadow-card p-6">
+                  <h2 className="text-base font-semibold text-foreground mb-6">
+                    {t("formTitle")}
+                  </h2>
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="date" className="text-sm font-medium">
+                          {t("formDate")}
+                        </Label>
+                        <Input
+                          id="date"
+                          type="date"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="rounded-lg border-border"
+                          data-ocid="form.date.input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="duration"
+                          className="text-sm font-medium"
+                        >
+                          {t("formDuration")}
+                        </Label>
+                        <Input
+                          id="duration"
+                          type="number"
+                          min={1}
+                          placeholder={t("formDurationPlaceholder")}
+                          value={duration}
+                          onChange={(e) => setDuration(e.target.value)}
+                          className="rounded-lg border-border"
+                          data-ocid="form.duration.input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="memo" className="text-sm font-medium">
+                        {t("formMemo")}
+                      </Label>
+                      <Textarea
+                        id="memo"
+                        placeholder={t("formMemoPlaceholder")}
+                        value={memo}
+                        onChange={(e) => setMemo(e.target.value)}
+                        rows={3}
+                        className="rounded-lg border-border resize-none"
+                        data-ocid="form.memo.textarea"
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium"
+                      disabled={addRecord.isPending}
+                      data-ocid="form.submit_button"
+                    >
+                      {addRecord.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t("formSaving")}
+                        </>
+                      ) : (
+                        t("formSubmit")
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              </section>
+
+              {/* Records list */}
+              <section>
+                <h2 className="text-base font-semibold text-foreground mb-4">
+                  {t("pastRecords")}
+                </h2>
+
+                {recordsLoading ? (
+                  <div
+                    className="flex justify-center py-12"
+                    data-ocid="records.loading_state"
+                  >
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : sortedRecords.length === 0 ? (
+                  <div
+                    className="bg-card rounded-2xl shadow-card p-10 text-center"
+                    data-ocid="records.empty_state"
+                  >
+                    <p className="text-4xl mb-3">🌿</p>
+                    <p className="text-muted-foreground text-sm">
+                      {t("emptyStateTitle")}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {t("emptyStateSubtitle")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <AnimatePresence initial={false}>
+                      {sortedRecords.map((item, idx) => (
+                        <motion.div
+                          key={String(item.id)}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -16 }}
+                          transition={{ duration: 0.2, delay: idx * 0.04 }}
+                          data-ocid={`records.item.${idx + 1}`}
+                          className="bg-card rounded-2xl shadow-card p-5 flex gap-4 items-start"
+                        >
+                          <div className="shrink-0 min-w-[80px] text-center">
+                            <p className="text-xs font-semibold text-primary">
+                              {item.record.date.slice(5).replace("-", "/")}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {item.record.date.slice(0, 4)}
+                            </p>
+                            <div className="mt-2 bg-secondary rounded-lg px-2 py-1">
+                              <p className="text-sm font-bold text-primary">
+                                {Number(item.record.duration)}
+                                <span className="text-xs font-normal">
+                                  {t("durationUnit")}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="w-px self-stretch bg-border" />
+
+                          <div className="flex-1 min-w-0">
+                            {item.record.memo ? (
+                              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                {item.record.memo}
+                              </p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground/50 italic">
+                                {t("noMemo")}
+                              </p>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item.id)}
+                            disabled={deleteRecord.isPending}
+                            data-ocid={`records.delete_button.${idx + 1}`}
+                            className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-opacity hover:opacity-80 disabled:opacity-40"
+                            style={{ backgroundColor: "oklch(0.86 0.04 15)" }}
+                            aria-label="削除"
+                          >
+                            <Trash2
+                              className="w-4 h-4"
+                              style={{ color: "oklch(0.45 0.08 15)" }}
+                            />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </section>
+            </TabsContent>
+
+            <TabsContent value="review" className="mt-0">
+              <ReviewPage records={records} totalMinutes={totalMinutes} />
+            </TabsContent>
+          </Tabs>
+        </main>
+
+        {/* Footer */}
+        <footer className="text-center py-8 text-xs text-muted-foreground space-y-3">
+          <FeedbackSheet />
+          <div>
+            © {new Date().getFullYear()}. Built with love using{" "}
+            <a
+              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-foreground transition-colors"
+            >
+              caffeine.ai
+            </a>
+          </div>
+        </footer>
+
+        {/* Level-up celebration overlay */}
+        <AnimatePresence>
+          {levelUpStage !== null && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.7, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+            >
+              <div className="bg-card border-2 border-primary rounded-3xl px-8 py-6 shadow-2xl text-center max-w-xs mx-4">
+                <p className="text-3xl mb-2">✦</p>
+                <p className="text-xl font-bold text-primary mb-1">
+                  {t("levelUpTitle")}
+                </p>
+                <p className="text-base text-foreground">
+                  段階 {levelUpStage} {t("levelUpOf")}
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {t("levelUpSubtitle")}
+                </p>
+              </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          )}
+        </AnimatePresence>
+
+        {/* Cycle Complete Modal */}
+        <CycleCompleteModal
+          open={cycleCompleteOpen}
+          onStayHere={handleStayHere}
+          onNextCycle={handleNextCycle}
+        />
+
+        {/* Cycle Transition Screen */}
+        <AnimatePresence>
+          {cycleTransition && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-md"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              data-ocid="cycle_transition.modal"
+            >
+              <motion.div
+                className="text-center px-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
+                <motion.p
+                  className="text-5xl mb-8"
+                  animate={{ rotate: [0, 5, -5, 3, -3, 0], scale: [1, 1.1, 1] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Number.POSITIVE_INFINITY,
+                    repeatDelay: 1,
+                  }}
+                >
+                  🌱
+                </motion.p>
+                <p className="text-2xl font-semibold text-foreground mb-3 tracking-tight">
+                  {t("cycleTransitionTitle")}
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t("cycleTransitionBody")}
+                </p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   );
 }
