@@ -603,24 +603,39 @@ export default function MeditationLog() {
   // Sync personality and stayHere from backend on load
   useEffect(() => {
     if (treeState) {
-      // Write to localStorage cache
-      localStorage.setItem(
-        TREE_STATE_STORAGE_KEY,
-        JSON.stringify({
-          personality: treeState.personality,
-          stayHere: treeState.stayHere,
-          cycleIndex: String(treeState.cycleIndex),
-        }),
-      );
       const p = treeState.personality;
-      if (p === "star" || p === "flow" || p === "empress") {
+      const isValidPersonality =
+        p === "star" || p === "flow" || p === "empress";
+
+      if (isValidPersonality) {
+        // Backend has a valid personality — write to localStorage and sync state
+        localStorage.setItem(
+          TREE_STATE_STORAGE_KEY,
+          JSON.stringify({
+            personality: p,
+            stayHere: treeState.stayHere,
+            cycleIndex: String(treeState.cycleIndex),
+          }),
+        );
         setPersonality(p);
       } else {
-        setPersonality(null);
+        // Backend returned empty — keep localStorage value, re-save personality to backend if we have one
+        setPersonality((current) => {
+          if (current) {
+            // Re-sync the local value back to backend
+            setTreeState.mutate({
+              personality: current,
+              cycleIndex: BigInt(treeState ? Number(treeState.cycleIndex) : 0),
+              stayHere: treeState.stayHere,
+              cycleCompleteShown: false,
+            });
+          }
+          return current;
+        });
       }
       setStayHere(treeState.stayHere);
     }
-  }, [treeState]);
+  }, [treeState, setTreeState]);
 
   const totalDays = computeTotalDays(records);
   const totalMin = Number(totalMinutes);
@@ -755,7 +770,7 @@ export default function MeditationLog() {
   }
 
   // Show personality select if not chosen yet (only after zen loader is done)
-  if (!showZenLoader && (!personality || treeState?.personality === "")) {
+  if (!showZenLoader && !personality) {
     return <PersonalitySelectScreen onSelect={handleSelectPersonality} />;
   }
 
