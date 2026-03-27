@@ -31,8 +31,9 @@ actor {
     timestamp : Int;
   };
 
-  let records = Map.empty<Int, MeditationRecord>();
-  var nextId = 1;
+  // Stable storage for records (persists across upgrades)
+  stable var stableRecords : [(Int, MeditationRecord)] = [];
+  stable var nextId : Int = 1;
 
   stable var treePersonality : Text = "";
   stable var treeCycleIndex : Nat = 0;
@@ -41,8 +42,29 @@ actor {
 
   stable var visitCount : Nat = 0;
 
+  // Stable storage for feedbacks
+  stable var stableFeedbacks : [(Int, FeedbackEntry)] = [];
+  stable var nextFeedbackId : Int = 1;
+
+  // In-memory maps (rebuilt from stable storage on upgrade)
+  let records = Map.empty<Int, MeditationRecord>();
   let feedbacks = Map.empty<Int, FeedbackEntry>();
-  var nextFeedbackId = 1;
+
+  // Restore data from stable storage after upgrade
+  system func postupgrade() {
+    for ((id, record) in stableRecords.vals()) {
+      records.add(id, record);
+    };
+    for ((id, entry) in stableFeedbacks.vals()) {
+      feedbacks.add(id, entry);
+    };
+  };
+
+  // Save data to stable storage before upgrade
+  system func preupgrade() {
+    stableRecords := records.toArray();
+    stableFeedbacks := feedbacks.toArray();
+  };
 
   public shared ({ caller }) func addRecord(date : Text, duration : Nat, moodBefore : Nat, moodAfter : Nat, memo : Text) : async Int {
     assert (moodBefore >= 1 and moodBefore <= 5);
@@ -57,6 +79,7 @@ actor {
       memo;
     };
     records.add(id, record);
+    stableRecords := records.toArray();
     id;
   };
 
@@ -77,6 +100,7 @@ actor {
       Runtime.trap("Record with id " # id.toText() # " does not exist. ");
     };
     records.remove(id);
+    stableRecords := records.toArray();
   };
 
   public query func getTreeState() : async TreeState {
@@ -114,6 +138,7 @@ actor {
       timestamp = Time.now();
     };
     feedbacks.add(id, entry);
+    stableFeedbacks := feedbacks.toArray();
   };
 
   public query func getAllFeedback() : async [FeedbackEntry] {
