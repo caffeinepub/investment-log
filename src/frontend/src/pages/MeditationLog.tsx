@@ -583,6 +583,9 @@ export default function MeditationLog() {
   const addRecord = useAddRecord();
   const deleteRecord = useDeleteRecord();
   const setTreeState = useSetTreeState();
+  // Stable ref to avoid including setTreeState (mutation object) in effect deps
+  const setTreeStateMutateRef = useRef<typeof setTreeState.mutate | null>(null);
+  setTreeStateMutateRef.current = setTreeState.mutate;
 
   // On mount: restore personality from localStorage before backend arrives
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
@@ -623,7 +626,7 @@ export default function MeditationLog() {
         setPersonality((current) => {
           if (current) {
             // Re-sync the local value back to backend
-            setTreeState.mutate({
+            setTreeStateMutateRef.current?.({
               personality: current,
               cycleIndex: BigInt(treeState ? Number(treeState.cycleIndex) : 0),
               stayHere: treeState.stayHere,
@@ -635,7 +638,7 @@ export default function MeditationLog() {
       }
       setStayHere(treeState.stayHere);
     }
-  }, [treeState, setTreeState]);
+  }, [treeState]);
 
   const totalDays = computeTotalDays(records);
   const totalMin = Number(totalMinutes);
@@ -660,7 +663,7 @@ export default function MeditationLog() {
           setCycleCompleteOpen(true);
           // Mark cycleCompleteShown in backend
           if (personality) {
-            setTreeState.mutate({
+            setTreeStateMutateRef.current?.({
               personality,
               cycleIndex: BigInt(treeState ? Number(treeState.cycleIndex) : 0),
               stayHere,
@@ -676,7 +679,7 @@ export default function MeditationLog() {
       }
     }
     prevStageRef.current = stage;
-  }, [stage, treeState, personality, stayHere, setTreeState]);
+  }, [stage, treeState, personality, stayHere]);
 
   async function handleSelectPersonality(p: TreePersonality) {
     setPersonality(p);
