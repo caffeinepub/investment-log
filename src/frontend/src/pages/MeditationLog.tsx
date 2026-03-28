@@ -78,7 +78,20 @@ function computeTotalDays(records: MeditationRecordWithId[]): number {
   return new Set(records.map((r) => r.record.date)).size;
 }
 
-function playAlarm(audioCtxRef: React.MutableRefObject<AudioContext | null>) {
+// ソルフェジオ周波数：パーソナリティごとに異なる音
+// Star  852Hz — 直感・霊的な明晰さ
+// Flow  528Hz — 愛・奇跡
+// Empress 396Hz — 不安感情からの解放
+const PERSONALITY_FREQ: Record<string, number> = {
+  star: 852,
+  flow: 528,
+  empress: 396,
+};
+
+function playAlarm(
+  audioCtxRef: React.MutableRefObject<AudioContext | null>,
+  personality: string,
+) {
   if (!audioCtxRef.current) {
     audioCtxRef.current = new AudioContext();
   }
@@ -86,27 +99,20 @@ function playAlarm(audioCtxRef: React.MutableRefObject<AudioContext | null>) {
   if (ctx.state === "suspended") {
     ctx.resume();
   }
-  const tones = [
-    { freq: 528, start: 0, duration: 0.5 },
-    { freq: 660, start: 0.55, duration: 0.5 },
-    { freq: 880, start: 1.1, duration: 0.6 },
-  ];
-  for (const tone of tones) {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(tone.freq, ctx.currentTime + tone.start);
-    gain.gain.setValueAtTime(0, ctx.currentTime + tone.start);
-    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + tone.start + 0.02);
-    gain.gain.exponentialRampToValueAtTime(
-      0.001,
-      ctx.currentTime + tone.start + tone.duration,
-    );
-    osc.start(ctx.currentTime + tone.start);
-    osc.stop(ctx.currentTime + tone.start + tone.duration + 0.01);
-  }
+  const freq = PERSONALITY_FREQ[personality] ?? 528;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, ctx.currentTime);
+  // シンギングボウルのように：静かに立ち上がり、ゆっくりと消えていく
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.08);
+  gain.gain.setValueAtTime(0.25, ctx.currentTime + 0.5);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.0);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 3.1);
 }
 
 type TimerStatus = "idle" | "running" | "paused" | "finished";
@@ -115,10 +121,12 @@ function MeditationTimer({
   onElapsedMinutes,
   onTimerFinished,
   onWhisper,
+  personality,
 }: {
   onElapsedMinutes?: (minutes: number) => void;
   onTimerFinished?: () => void;
   onWhisper?: () => void;
+  personality?: string;
 }) {
   const { t } = useLanguage();
   const [targetMinutes, setTargetMinutes] = useState(10);
@@ -134,6 +142,11 @@ function MeditationTimer({
   const targetMinutesRef = useRef<number>(10);
   const onTimerFinishedRef = useRef(onTimerFinished);
   const onWhisperRef = useRef(onWhisper);
+  const personalityRef = useRef(personality);
+
+  useEffect(() => {
+    personalityRef.current = personality;
+  }, [personality]);
 
   useEffect(() => {
     onTimerFinishedRef.current = onTimerFinished;
@@ -159,7 +172,7 @@ function MeditationTimer({
       clearTimer();
       localStorage.removeItem(TIMER_STORAGE_KEY);
       setStatus("finished");
-      playAlarm(audioCtxRef);
+      playAlarm(audioCtxRef, personalityRef.current ?? "flow");
       vibrate([100, 50, 100, 50, 100]);
       elapsedMinutesRef.current = elapsedMinutes;
       onElapsedMinutes?.(elapsedMinutes);
@@ -973,6 +986,7 @@ export default function MeditationLog() {
                 onElapsedMinutes={handleTimerElapsed}
                 onTimerFinished={showTimerNotification}
                 onWhisper={handleTimerWhisper}
+                personality={personality ?? "flow"}
               />
 
               {/* Form */}
