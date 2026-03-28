@@ -6,6 +6,7 @@ interface PlantGrowthProps {
   totalMinutes: number;
   personality: TreePersonality;
   stayHere?: boolean;
+  lang?: "ja" | "en";
 }
 
 const C = {
@@ -2025,6 +2026,7 @@ export default function PlantGrowth({
   totalMinutes,
   personality,
   stayHere,
+  lang = "ja",
 }: PlantGrowthProps) {
   const stage = Math.min(Math.floor(totalMinutes / 20), 50);
   const colors = C[personality];
@@ -2034,7 +2036,9 @@ export default function PlantGrowth({
       <svg
         viewBox="0 0 200 280"
         width={190}
-        aria-label={`木の成長 段階${stage}`}
+        aria-label={
+          lang === "en" ? `Tree growth stage ${stage}` : `木の成長 段階${stage}`
+        }
         role="img"
       >
         <Pot />
@@ -2051,9 +2055,13 @@ export default function PlantGrowth({
 
       <div className="flex flex-col items-center gap-0.5 py-2">
         <p className="text-xs text-gray-400 font-medium tracking-wide">
-          段階 {stage} / 50
+          {lang === "en" ? `Stage ${stage} / 50` : `段階 ${stage} / 50`}
         </p>
-        {stayHere && <p className="text-xs text-gray-400">この木とともに… ✦</p>}
+        {stayHere && (
+          <p className="text-xs text-gray-400">
+            {lang === "en" ? "Staying with this tree… ✦" : "この木とともに… ✦"}
+          </p>
+        )}
       </div>
     </div>
   );

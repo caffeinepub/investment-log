@@ -1,114 +1,99 @@
 export type ZenPhrase = {
-  kanji: string;
-  reading: string;
-  description: string;
+  quote: string;
+  author: string;
 };
 
 export const ZEN_PHRASES: ZenPhrase[] = [
+  // William Blake (1757–1827)
   {
-    kanji: "本地風光",
-    reading: "ほんちふうこう",
-    description: "もともとここにある景色。ずっとここにあった",
+    quote: "一粒の砂に世界を見る\n一輪の野の花に天国を見る",
+    author: "ウィリアム・ブレイク",
   },
   {
-    kanji: "廓然無聖",
-    reading: "かくぜんむしょう",
-    description: "広々と、何もない。それが全部",
+    quote: "喜びと悲しみは、繊細に織り合わされている",
+    author: "ウィリアム・ブレイク",
   },
   {
-    kanji: "如如不動",
-    reading: "にょにょふどう",
-    description: "何が来ても、ここは揺れない",
+    quote: "太陽の昇りを見るとき\n私は黄金の万軍を見る",
+    author: "ウィリアム・ブレイク",
+  },
+  // Walt Whitman (1819–1892)
+  {
+    quote: "私は大きい\n私は無数のものを含んでいる",
+    author: "ウォルト・ホイットマン",
   },
   {
-    kanji: "竹影掃階塵不動",
-    reading: "ちくえいかいをはらえどちりうごかず",
-    description: "通り過ぎるものは通り過ぎる。ここは静か",
+    quote: "どんな草の葉も、星と同じ奇跡だ",
+    author: "ウォルト・ホイットマン",
   },
   {
-    kanji: "渓声山色",
-    reading: "けいせいさんしょく",
-    description: "川の音も、山の姿も。そのままでいい",
+    quote: "生命そのものが美しい\nすべての音楽は生命だ",
+    author: "ウォルト・ホイットマン",
+  },
+  // Rabindranath Tagore (1861–1941)
+  {
+    quote: "喜びよ、あなたの呼ぶ声に\n私の心は羽ばたく",
+    author: "ラビンドラナート・タゴール",
   },
   {
-    kanji: "雲無心出岫",
-    reading: "くもこころなくしゅつしゅう",
-    description: "何も考えなくていい。ただ、出てきた",
+    quote: "光が満ちているところへ\n私は行く",
+    author: "ラビンドラナート・タゴール",
   },
   {
-    kanji: "白雲自去来",
-    reading: "はくうんじきょらい",
-    description: "来るものは来る。去るものは去る",
+    quote: "信仰とは、夜明け前でも鳥が歌うことだ",
+    author: "ラビンドラナート・タゴール",
+  },
+  // Rainer Maria Rilke (1875–1926)
+  {
+    quote: "美しいものは、始まりにすぎない",
+    author: "ライナー・マリア・リルケ",
   },
   {
-    kanji: "行雲流水",
-    reading: "こううんりゅうすい",
-    description: "流れに逆らわない。それだけでいい",
+    quote: "すべての天使は\n恐ろしいほど美しい",
+    author: "ライナー・マリア・リルケ",
   },
   {
-    kanji: "雨過天青",
-    reading: "あめすぎてそらあおし",
-    description: "雨が過ぎた。空が青くなった",
+    quote: "どんな感情も\n最後まで生き抜け",
+    author: "ライナー・マリア・リルケ",
+  },
+  // Rumi (1207–1273)
+  {
+    quote: "あなたが求めるものは\nあなたを求めている",
+    author: "ルーミー",
   },
   {
-    kanji: "清風明月",
-    reading: "せいふうめいげつ",
-    description: "風が澄んでいる。月が明るい",
+    quote: "光の中へ出よ\n光そのものになれ",
+    author: "ルーミー",
   },
   {
-    kanji: "月在青天水在瓶",
-    reading: "つきはせいてん、みずはかめに",
-    description: "月は月の場所に。水は水の場所に",
+    quote: "あなたは、宇宙が踊る音楽だ",
+    author: "ルーミー",
+  },
+  // W.B. Yeats (1865–1939)
+  {
+    quote: "夢の布\n光と薄明かりで織られた",
+    author: "W.B. イエイツ",
   },
   {
-    kanji: "山川草木悉有仏性",
-    reading: "さんせんそうもくことごとくぶっしょうあり",
-    description: "山も川も、草も木も。あなたも",
+    quote: "どこを向いても\n美しさの名残がある",
+    author: "W.B. イエイツ",
   },
   {
-    kanji: "閑雲野鶴",
-    reading: "かんうんやかく",
-    description: "縛られていない。ただ、そこにいる",
+    quote: "生命の流れは\n愛から来ている",
+    author: "W.B. イエイツ",
+  },
+  // Alfred Lord Tennyson (1809–1892)
+  {
+    quote: "求め、探し、見つけ\n屈しない",
+    author: "アルフレッド・テニスン",
   },
   {
-    kanji: "春花秋月",
-    reading: "しゅんかしゅうげつ",
-    description: "春は花、秋は月。それだけでいい",
+    quote: "光の中で前へ\n夜明けとともに",
+    author: "アルフレッド・テニスン",
   },
   {
-    kanji: "夕陽無限好",
-    reading: "せきようかぎりなくよし",
-    description: "夕陽は、いつも限りなく美しい",
-  },
-  {
-    kanji: "松風水声",
-    reading: "しょうふうすいせい",
-    description: "松の風と、水の音だけがある",
-  },
-  {
-    kanji: "桃花一枝春",
-    reading: "とうかいっしはる",
-    description: "一枝の桃の花に、春がある",
-  },
-  {
-    kanji: "春水満四澤",
-    reading: "しゅんすいしたくにみつ",
-    description: "春の水が、どこにでも満ちている",
-  },
-  {
-    kanji: "春風駘蕩",
-    reading: "しゅんぷうたいとう",
-    description: "春風が、ゆったりと吹いている",
-  },
-  {
-    kanji: "水月道場",
-    reading: "すいげつどうじょう",
-    description: "水に映る月のように、確かにある",
-  },
-  {
-    kanji: "水善利万物",
-    reading: "みずはよくばんぶつをり",
-    description: "水は、すべてを潤して、争わない",
+    quote: "古きものは変わり\n新しき光に場所を譲る",
+    author: "アルフレッド・テニスン",
   },
 ];
 

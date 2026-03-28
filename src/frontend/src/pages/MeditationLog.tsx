@@ -24,6 +24,7 @@ import {
   useGetTreeState,
   useSetTreeState,
   useSubmitFeedback,
+  useUpdateRecord,
 } from "@/hooks/useQueries";
 import { useLanguage } from "@/i18n";
 import {
@@ -33,7 +34,14 @@ import {
   starPhrases,
 } from "@/lib/whisperPhrases";
 import ReviewPage from "@/pages/ReviewPage";
-import { CalendarDays, Clock, Droplets, Loader2, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  Droplets,
+  Loader2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -55,8 +63,16 @@ function vibrate(pattern: number | number[]) {
   }
 }
 
-function formatDuration(minutes: bigint): string {
+function formatDuration(minutes: bigint, lang: "ja" | "en"): string {
   const m = Number(minutes);
+  if (lang === "en") {
+    if (m >= 60) {
+      const h = Math.floor(m / 60);
+      const rem = m % 60;
+      return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+    }
+    return `${m} min`;
+  }
   if (m >= 60) {
     const h = Math.floor(m / 60);
     const rem = m % 60;
@@ -600,7 +616,7 @@ function FeedbackSheet() {
   );
 }
 
-async function showTimerNotification() {
+async function showTimerNotification(lang: "ja" | "en") {
   if (!("Notification" in window)) return;
   if (Notification.permission === "default") {
     await Notification.requestPermission();
@@ -608,8 +624,14 @@ async function showTimerNotification() {
   if (Notification.permission === "granted") {
     try {
       const reg = await navigator.serviceWorker.ready;
-      reg.showNotification("瞑想が終わりました ☀️", {
-        body: "静かに、目を開けてください。",
+      const title =
+        lang === "en" ? "Meditation complete ☀️" : "瞑想が終わりました ☀️";
+      const body =
+        lang === "en"
+          ? "Gently, open your eyes."
+          : "静かに、目を開けてください。";
+      reg.showNotification(title, {
+        body,
         icon: "/assets/generated/icon-512.dim_512x512.png",
         badge: "/assets/generated/icon-512.dim_512x512.png",
         silent: false,
@@ -634,12 +656,18 @@ export default function MeditationLog() {
   const [cycleCompleteOpen, setCycleCompleteOpen] = useState(false);
   const [cycleTransition, setCycleTransition] = useState(false);
   const [whisperPhrase, setWhisperPhrase] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<bigint | null>(null);
+  const [editDuration, setEditDuration] = useState("");
+  const [editMemo, setEditMemo] = useState("");
+  const [timerJustFinished, setTimerJustFinished] = useState(false);
 
   const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
   const { data: treeState } = useGetTreeState();
   const addRecord = useAddRecord();
   const deleteRecord = useDeleteRecord();
+  const updateRecord = useUpdateRecord();
   const setTreeState = useSetTreeState();
   // Stable ref to avoid including setTreeState (mutation object) in effect deps
   const setTreeStateMutateRef = useRef<typeof setTreeState.mutate | null>(null);
@@ -844,6 +872,12 @@ export default function MeditationLog() {
     }
   }
 
+  function handleTimerFinished() {
+    setTimerJustFinished(true);
+    showTimerNotification(lang);
+    setTimeout(() => setTimerJustFinished(false), 2000);
+  }
+
   const sortedRecords = [...records].sort((a, b) => {
     const dateCmp = b.record.date.localeCompare(a.record.date);
     if (dateCmp !== 0) return dateCmp;
@@ -884,6 +918,20 @@ export default function MeditationLog() {
     }
   }
 
+  async function handleEditSave() {
+    if (editingId === null) return;
+    try {
+      await updateRecord.mutateAsync({
+        id: editingId,
+        duration: BigInt(Number(editDuration) || 0),
+        memo: editMemo,
+      });
+      setEditingId(null);
+    } catch {
+      toast.error(t("deleteError"));
+    }
+  }
+
   // Show personality select only after zen loader is done AND backend has responded
   if (!showZenLoader && !personality && treeState !== undefined) {
     return <PersonalitySelectScreen onSelect={handleSelectPersonality} />;
@@ -897,7 +945,12 @@ export default function MeditationLog() {
           onDone={() => setShowZenLoader(false)}
         />
       )}
-      <div className="min-h-screen bg-background">
+      <motion.div
+        className="min-h-screen bg-background"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4, duration: 0.6 }}
+      >
         {/* Header */}
         <header className="bg-card border-b border-border sticky top-0 z-10">
           <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
@@ -950,7 +1003,7 @@ export default function MeditationLog() {
                   ocid="stats.total_time.card"
                   icon={<Clock className="w-5 h-5 text-primary" />}
                   label={t("statsTotalTime")}
-                  value={formatDuration(totalMinutes)}
+                  value={formatDuration(totalMinutes, lang)}
                 />
                 <StatCard
                   ocid="stats.days.card"
@@ -973,6 +1026,7 @@ export default function MeditationLog() {
                     totalMinutes={totalMin}
                     personality={personality ?? "star"}
                     stayHere={stayHere}
+                    lang={lang}
                   />
                   <WhisperBubble
                     phrase={whisperPhrase}
@@ -984,14 +1038,20 @@ export default function MeditationLog() {
               {/* Timer */}
               <MeditationTimer
                 onElapsedMinutes={handleTimerElapsed}
-                onTimerFinished={showTimerNotification}
+                onTimerFinished={handleTimerFinished}
                 onWhisper={handleTimerWhisper}
                 personality={personality ?? "flow"}
               />
 
               {/* Form */}
               <section>
-                <div className="bg-card rounded-2xl shadow-card p-6">
+                <div
+                  className="bg-card rounded-2xl shadow-card p-6 transition-opacity duration-500"
+                  style={{
+                    opacity: timerJustFinished ? 0.6 : 1,
+                    pointerEvents: timerJustFinished ? "none" : "auto",
+                  }}
+                >
                   <h2 className="text-base font-semibold text-foreground mb-6">
                     {t("formTitle")}
                   </h2>
@@ -1066,9 +1126,22 @@ export default function MeditationLog() {
 
               {/* Records list */}
               <section>
-                <h2 className="text-base font-semibold text-foreground mb-4">
-                  {t("pastRecords")}
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-semibold text-foreground">
+                    {t("pastRecords")}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditMode((v) => !v);
+                      setEditingId(null);
+                    }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-secondary"
+                    data-ocid="records.edit_button"
+                  >
+                    {editMode ? t("editDone") : t("editToggle")}
+                  </button>
+                </div>
 
                 {recordsLoading ? (
                   <div
@@ -1101,53 +1174,137 @@ export default function MeditationLog() {
                           exit={{ opacity: 0, x: -16 }}
                           transition={{ duration: 0.2, delay: idx * 0.04 }}
                           data-ocid={`records.item.${idx + 1}`}
-                          className="bg-card rounded-2xl shadow-card p-5 flex gap-4 items-start"
+                          className="bg-card rounded-2xl shadow-card p-5"
                         >
-                          <div className="shrink-0 min-w-[80px] text-center">
-                            <p className="text-xs font-semibold text-primary">
-                              {item.record.date.slice(5).replace("-", "/")}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {item.record.date.slice(0, 4)}
-                            </p>
-                            <div className="mt-2 bg-secondary rounded-lg px-2 py-1">
-                              <p className="text-sm font-bold text-primary">
-                                {Number(item.record.duration)}
-                                <span className="text-xs font-normal">
+                          {editingId === item.id ? (
+                            /* Inline edit form */
+                            <div className="flex flex-col gap-3">
+                              <div className="flex gap-3 items-center">
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  {t("formDuration")}
+                                </span>
+                                <input
+                                  type="number"
+                                  value={editDuration}
+                                  onChange={(e) =>
+                                    setEditDuration(e.target.value)
+                                  }
+                                  className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-sm text-foreground"
+                                  data-ocid={`records.input.${idx + 1}`}
+                                  min="1"
+                                />
+                                <span className="text-xs text-muted-foreground">
                                   {t("durationUnit")}
                                 </span>
-                              </p>
+                              </div>
+                              <textarea
+                                value={editMemo}
+                                onChange={(e) => setEditMemo(e.target.value)}
+                                rows={3}
+                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground resize-none"
+                                placeholder={t("formMemoPlaceholder")}
+                                data-ocid={`records.textarea.${idx + 1}`}
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingId(null)}
+                                  className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+                                  data-ocid={`records.cancel_button.${idx + 1}`}
+                                >
+                                  キャンセル
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleEditSave}
+                                  disabled={updateRecord.isPending}
+                                  className="text-xs px-3 py-1.5 rounded-lg text-white transition-colors disabled:opacity-40"
+                                  style={{
+                                    backgroundColor: "oklch(0.55 0.12 160)",
+                                  }}
+                                  data-ocid={`records.save_button.${idx + 1}`}
+                                >
+                                  保存
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            /* Normal record display */
+                            <div className="flex gap-4 items-start">
+                              <div className="shrink-0 min-w-[80px] text-center">
+                                <p className="text-xs font-semibold text-primary">
+                                  {item.record.date.slice(5).replace("-", "/")}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {item.record.date.slice(0, 4)}
+                                </p>
+                                <div className="mt-2 bg-secondary rounded-lg px-2 py-1">
+                                  <p className="text-sm font-bold text-primary">
+                                    {Number(item.record.duration)}
+                                    <span className="text-xs font-normal">
+                                      {t("durationUnit")}
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
 
-                          <div className="w-px self-stretch bg-border" />
+                              <div className="w-px self-stretch bg-border" />
 
-                          <div className="flex-1 min-w-0">
-                            {item.record.memo ? (
-                              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                                {item.record.memo}
-                              </p>
-                            ) : (
-                              <p className="text-sm text-muted-foreground/50 italic">
-                                {t("noMemo")}
-                              </p>
-                            )}
-                          </div>
+                              <div className="flex-1 min-w-0">
+                                {item.record.memo ? (
+                                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                    {item.record.memo}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground/50 italic">
+                                    {t("noMemo")}
+                                  </p>
+                                )}
+                              </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item.id)}
-                            disabled={deleteRecord.isPending}
-                            data-ocid={`records.delete_button.${idx + 1}`}
-                            className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-opacity hover:opacity-80 disabled:opacity-40"
-                            style={{ backgroundColor: "oklch(0.86 0.04 15)" }}
-                            aria-label="削除"
-                          >
-                            <Trash2
-                              className="w-4 h-4"
-                              style={{ color: "oklch(0.45 0.08 15)" }}
-                            />
-                          </button>
+                              {editMode && (
+                                <div className="shrink-0 flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingId(item.id);
+                                      setEditDuration(
+                                        String(Number(item.record.duration)),
+                                      );
+                                      setEditMemo(item.record.memo);
+                                    }}
+                                    data-ocid={`records.edit_button.${idx + 1}`}
+                                    className="w-8 h-8 rounded-xl flex items-center justify-center transition-opacity hover:opacity-80"
+                                    style={{
+                                      backgroundColor: "oklch(0.88 0.04 220)",
+                                    }}
+                                    aria-label={t("editToggle")}
+                                  >
+                                    <Pencil
+                                      className="w-3.5 h-3.5"
+                                      style={{ color: "oklch(0.45 0.08 220)" }}
+                                    />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(item.id)}
+                                    disabled={deleteRecord.isPending}
+                                    data-ocid={`records.delete_button.${idx + 1}`}
+                                    className="w-8 h-8 rounded-xl flex items-center justify-center transition-opacity hover:opacity-80 disabled:opacity-40"
+                                    style={{
+                                      backgroundColor: "oklch(0.86 0.04 15)",
+                                    }}
+                                    aria-label={t("deleteAriaLabel")}
+                                  >
+                                    <Trash2
+                                      className="w-3.5 h-3.5"
+                                      style={{ color: "oklch(0.45 0.08 15)" }}
+                                    />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </motion.div>
                       ))}
                     </AnimatePresence>
@@ -1224,7 +1381,7 @@ export default function MeditationLog() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     </>
   );
 }

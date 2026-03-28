@@ -31,13 +31,13 @@ export function WhisperBubble({ phrase, onDone }: WhisperBubbleProps) {
           <span
             className="inline-block px-4 py-2 rounded-2xl text-sm leading-relaxed"
             style={{
-              background: "rgba(255,255,255,0.72)",
+              background: "rgba(255,255,255,0.08)",
               backdropFilter: "blur(6px)",
-              color: "#5a5a6a",
+              color: "oklch(0.82 0.06 78)",
               fontStyle: "italic",
               letterSpacing: "0.01em",
-              boxShadow: "0 1px 8px 0 rgba(0,0,0,0.06)",
-              border: "1px solid rgba(200,200,220,0.35)",
+              fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif",
+              border: "1px solid rgba(255,255,255,0.12)",
             }}
           >
             {phrase}

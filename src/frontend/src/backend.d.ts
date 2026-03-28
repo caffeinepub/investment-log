@@ -32,6 +32,7 @@ export interface FeedbackEntry {
 }
 export interface backendInterface {
     addRecord(date: string, duration: bigint, moodBefore: bigint, moodAfter: bigint, memo: string): Promise<bigint>;
+    updateRecord(id: bigint, duration: bigint, memo: string): Promise<void>;
     deleteRecord(id: bigint): Promise<void>;
     getAllRecordsWithIds(): Promise<Array<MeditationRecordWithId>>;
     getTotalMinutes(): Promise<bigint>;

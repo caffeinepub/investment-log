@@ -100,6 +100,12 @@ const translations = {
     adminFeedback: "フィードバック",
     adminAnonymous: "匿名",
     adminNoFeedback: "まだ届いていません",
+    editToggle: "編集",
+    editDone: "完了",
+    stayHereLabel: "この木とともに… ✦",
+    notifTitle: "瞑想が終わりました ☀️",
+    notifBody: "静かに、目を開けてください。",
+    deleteAriaLabel: "削除",
   },
   en: {
     appTitle: "Meditation Log",
@@ -198,6 +204,12 @@ const translations = {
     adminFeedback: "Feedback",
     adminAnonymous: "Anonymous",
     adminNoFeedback: "None yet",
+    editToggle: "Edit",
+    editDone: "Done",
+    stayHereLabel: "Staying with this tree… ✦",
+    notifTitle: "Meditation complete ☀️",
+    notifBody: "Gently, open your eyes.",
+    deleteAriaLabel: "Delete",
   },
 } as const;
 

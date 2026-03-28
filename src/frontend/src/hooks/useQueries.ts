@@ -133,6 +133,42 @@ export function useDeleteRecord() {
   });
 }
 
+export function useUpdateRecord() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      duration,
+      memo,
+    }: {
+      id: bigint;
+      duration: bigint;
+      memo: string;
+    }) => {
+      if (!actor) throw new Error("Actor not ready");
+      return (actor as any).updateRecord(id, duration, memo);
+    },
+    onMutate: async ({ id, duration, memo }) => {
+      await queryClient.cancelQueries({ queryKey: ["records"] });
+      const prevRecords = queryClient.getQueryData<any[]>(["records"]) ?? [];
+      queryClient.setQueryData(
+        ["records"],
+        prevRecords.map((r: any) =>
+          r.id === id ? { ...r, record: { ...r.record, duration, memo } } : r,
+        ),
+      );
+      return { prevRecords };
+    },
+    onError: (_err: any, _vars: any, context: any) => {
+      if (context?.prevRecords !== undefined)
+        queryClient.setQueryData(["records"], context.prevRecords);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["records"] });
+    },
+  });
+}
 export function useGetTreeState() {
   const { actor, isFetching } = useActor();
   return useQuery<TreeState | null>({

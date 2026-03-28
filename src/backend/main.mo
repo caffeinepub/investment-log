@@ -31,7 +31,7 @@ actor {
     timestamp : Int;
   };
 
-  // Stable storage for records (persists across upgrades)
+  // Stable storage for records (persists across upgrades AND restarts)
   stable var stableRecords : [(Int, MeditationRecord)] = [];
   stable var nextId : Int = 1;
 
@@ -46,11 +46,25 @@ actor {
   stable var stableFeedbacks : [(Int, FeedbackEntry)] = [];
   stable var nextFeedbackId : Int = 1;
 
-  // In-memory maps (rebuilt from stable storage on upgrade)
+  // In-memory maps - initialized from stable storage on every canister start
   let records = Map.empty<Int, MeditationRecord>();
   let feedbacks = Map.empty<Int, FeedbackEntry>();
 
-  // Restore data from stable storage after upgrade
+  // Restore data from stable storage on startup (handles restarts, not just upgrades)
+  for ((id, record) in stableRecords.vals()) {
+    records.add(id, record);
+  };
+  for ((id, entry) in stableFeedbacks.vals()) {
+    feedbacks.add(id, entry);
+  };
+
+  // Save data to stable storage before upgrade
+  system func preupgrade() {
+    stableRecords := records.toArray();
+    stableFeedbacks := feedbacks.toArray();
+  };
+
+  // Restore after upgrade (actor body already runs, but this ensures correctness)
   system func postupgrade() {
     for ((id, record) in stableRecords.vals()) {
       records.add(id, record);
@@ -58,12 +72,6 @@ actor {
     for ((id, entry) in stableFeedbacks.vals()) {
       feedbacks.add(id, entry);
     };
-  };
-
-  // Save data to stable storage before upgrade
-  system func preupgrade() {
-    stableRecords := records.toArray();
-    stableFeedbacks := feedbacks.toArray();
   };
 
   public shared ({ caller }) func addRecord(date : Text, duration : Nat, moodBefore : Nat, moodAfter : Nat, memo : Text) : async Int {
@@ -81,6 +89,25 @@ actor {
     records.add(id, record);
     stableRecords := records.toArray();
     id;
+  };
+
+  public shared ({ caller }) func updateRecord(id : Int, duration : Nat, memo : Text) : async () {
+    switch (records.get(id)) {
+      case null {
+        Runtime.trap("Record with id " # id.toText() # " does not exist.");
+      };
+      case (?existing) {
+        let updated : MeditationRecord = {
+          date = existing.date;
+          duration;
+          moodBefore = existing.moodBefore;
+          moodAfter = existing.moodAfter;
+          memo;
+        };
+        records.add(id, updated);
+        stableRecords := records.toArray();
+      };
+    };
   };
 
   public query ({ caller }) func getAllRecordsWithIds() : async [MeditationRecordWithId] {
