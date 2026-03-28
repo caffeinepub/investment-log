@@ -83,6 +83,9 @@ function playAlarm(audioCtxRef: React.MutableRefObject<AudioContext | null>) {
     audioCtxRef.current = new AudioContext();
   }
   const ctx = audioCtxRef.current;
+  if (ctx.state === "suspended") {
+    ctx.resume();
+  }
   const tones = [
     { freq: 528, start: 0, duration: 0.5 },
     { freq: 660, start: 0.55, duration: 0.5 },
@@ -356,7 +359,7 @@ function MeditationTimer({
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
               {status === "finished" ? (
-                <span className="text-4xl">🙏</span>
+                <span className="text-4xl">☀️</span>
               ) : (
                 <>
                   <span
@@ -592,7 +595,7 @@ async function showTimerNotification() {
   if (Notification.permission === "granted") {
     try {
       const reg = await navigator.serviceWorker.ready;
-      reg.showNotification("瞑想が終わりました 🙏", {
+      reg.showNotification("瞑想が終わりました ☀️", {
         body: "静かに、目を開けてください。",
         icon: "/assets/generated/icon-512.dim_512x512.png",
         badge: "/assets/generated/icon-512.dim_512x512.png",
