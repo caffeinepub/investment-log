@@ -49,6 +49,47 @@ import { toast } from "sonner";
 const PERSONALITY_ORDER: TreePersonality[] = ["star", "flow", "empress"];
 const TIMER_STORAGE_KEY = "meditationTimerState";
 const TREE_STATE_STORAGE_KEY = "meditationTreeState";
+const RECORDS_STORAGE_KEY = "meditationRecords";
+
+// Serialize records to localStorage (convert BigInt to number)
+function saveRecordsToLocalStorage(recs: MeditationRecordWithId[]) {
+  try {
+    const serializable = recs.map((r) => ({
+      id: Number(r.id),
+      record: {
+        date: r.record.date,
+        duration: Number(r.record.duration),
+        memo: r.record.memo,
+        moodBefore: Number(r.record.moodBefore),
+        moodAfter: Number(r.record.moodAfter),
+      },
+    }));
+    localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(serializable));
+  } catch {
+    /* ignore */
+  }
+}
+
+// Deserialize records from localStorage
+function loadRecordsFromLocalStorage(): MeditationRecordWithId[] {
+  try {
+    const raw = localStorage.getItem(RECORDS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return parsed.map((r: any) => ({
+      id: BigInt(r.id),
+      record: {
+        date: r.record.date,
+        duration: BigInt(r.record.duration),
+        memo: r.record.memo,
+        moodBefore: BigInt(r.record.moodBefore),
+        moodAfter: BigInt(r.record.moodAfter),
+      },
+    }));
+  } catch {
+    return [];
+  }
+}
 
 type PersistedTimerState = {
   status: "running" | "paused";
@@ -683,8 +724,30 @@ export default function MeditationLog() {
     return "linear-gradient(to bottom, #1a1a3e, #0d1b2a)";
   }, [currentHour]);
 
-  const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
+  const { data: backendRecords = [], isLoading: recordsLoading } =
+    useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
+
+  // localStorage backup: use backend data if available, otherwise fallback to localStorage
+  const [localRecordsCache, setLocalRecordsCache] = useState<
+    MeditationRecordWithId[]
+  >(() => loadRecordsFromLocalStorage());
+
+  // Sync backend records to localStorage and local cache
+  useEffect(() => {
+    if (!recordsLoading) {
+      if (backendRecords.length > 0) {
+        // Backend has data — save to localStorage as backup
+        saveRecordsToLocalStorage(backendRecords);
+        setLocalRecordsCache(backendRecords);
+      }
+      // If backend returned empty but localStorage has data, keep showing cached records
+    }
+  }, [backendRecords, recordsLoading]);
+
+  // Use backend data if available, otherwise fall back to localStorage cache
+  const records =
+    backendRecords.length > 0 ? backendRecords : localRecordsCache;
   const { data: treeState } = useGetTreeState();
   const addRecord = useAddRecord();
   const deleteRecord = useDeleteRecord();
