@@ -672,14 +672,14 @@ export default function MeditationLog() {
 
   const skyGradient = useMemo(() => {
     const h = currentHour;
-    if (h >= 0 && h < 4) return "linear-gradient(to bottom, #0d1b2a, #1a2744)";
-    if (h < 6) return "linear-gradient(to bottom, #1a1a3e, #3d2b4a)";
-    if (h < 7) return "linear-gradient(to bottom, #f7c59f, #e8a87c, #c97c5d)";
-    if (h < 10) return "linear-gradient(to bottom, #a8d8ea, #dff2fd)";
-    if (h < 14) return "linear-gradient(to bottom, #87ceeb, #c9e8f5)";
-    if (h < 17) return "linear-gradient(to bottom, #ffd89b, #e8c97a, #aed8e6)";
-    if (h < 19) return "linear-gradient(to bottom, #ff7e5f, #feb47b, #ffcba4)";
-    if (h < 21) return "linear-gradient(to bottom, #4a2c6e, #6b4fa0, #9b7fd4)";
+    if (h >= 0 && h < 4) return "linear-gradient(to bottom, #0a0f1e, #0d1530)";
+    if (h < 6) return "linear-gradient(to bottom, #1a1035, #2d1f4a)";
+    if (h < 7) return "linear-gradient(to bottom, #2a1a3e, #4a2d3a, #6b3d2e)";
+    if (h < 10) return "linear-gradient(to bottom, #1a2a4a, #1e3558, #243d6a)";
+    if (h < 14) return "linear-gradient(to bottom, #1b2d52, #1e3460, #22396b)";
+    if (h < 17) return "linear-gradient(to bottom, #1e2a4a, #2a2040, #3a2535)";
+    if (h < 19) return "linear-gradient(to bottom, #2d1a2e, #3d1f2a, #4a2820)";
+    if (h < 21) return "linear-gradient(to bottom, #1a1535, #221845, #1e1640)";
     return "linear-gradient(to bottom, #1a1a3e, #0d1b2a)";
   }, [currentHour]);
 
