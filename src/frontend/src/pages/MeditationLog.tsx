@@ -43,7 +43,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const PERSONALITY_ORDER: TreePersonality[] = ["star", "flow", "empress"];
@@ -662,6 +662,27 @@ export default function MeditationLog() {
   const [editMemo, setEditMemo] = useState("");
   const [timerJustFinished, setTimerJustFinished] = useState(false);
 
+  // Time-of-day sky gradient
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    const id = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const skyGradient = useMemo(() => {
+    const h = currentHour;
+    if (h >= 0 && h < 4) return "linear-gradient(to bottom, #0d1b2a, #1a2744)";
+    if (h < 6) return "linear-gradient(to bottom, #1a1a3e, #3d2b4a)";
+    if (h < 7) return "linear-gradient(to bottom, #f7c59f, #e8a87c, #c97c5d)";
+    if (h < 10) return "linear-gradient(to bottom, #a8d8ea, #dff2fd)";
+    if (h < 14) return "linear-gradient(to bottom, #87ceeb, #c9e8f5)";
+    if (h < 17) return "linear-gradient(to bottom, #ffd89b, #e8c97a, #aed8e6)";
+    if (h < 19) return "linear-gradient(to bottom, #ff7e5f, #feb47b, #ffcba4)";
+    if (h < 21) return "linear-gradient(to bottom, #4a2c6e, #6b4fa0, #9b7fd4)";
+    return "linear-gradient(to bottom, #1a1a3e, #0d1b2a)";
+  }, [currentHour]);
+
   const { data: records = [], isLoading: recordsLoading } = useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
   const { data: treeState } = useGetTreeState();
@@ -1016,9 +1037,22 @@ export default function MeditationLog() {
 
               {/* Plant Growth */}
               <section data-ocid="plant.section">
-                <div className="bg-card rounded-2xl shadow-card p-6 flex flex-col items-center gap-2">
+                <div
+                  className="rounded-2xl shadow-card p-6 flex flex-col items-center gap-2"
+                  style={{
+                    background: skyGradient,
+                    minHeight: "320px",
+                    transition: "background 2s ease",
+                  }}
+                >
                   <div className="w-full mb-2">
-                    <h2 className="text-base font-semibold text-foreground">
+                    <h2
+                      className="text-base font-semibold"
+                      style={{
+                        color: "rgba(255,255,255,0.9)",
+                        textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                      }}
+                    >
                       {t("yourTree")}
                     </h2>
                   </div>
