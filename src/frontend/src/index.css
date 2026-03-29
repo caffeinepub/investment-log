@@ -2,14 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: "Plus Jakarta Sans";
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
-}
-
 /* Color B — 深い夜空・藍・金 (deep indigo night sky, gold accent) */
 @layer base {
   :root {
@@ -68,12 +60,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-  }
-
-  /* Serif class for poetic / meditative text */
-  .serif-text {
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia,
-      serif;
+    font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont,
+      "Helvetica Neue", Arial, sans-serif;
   }
 }

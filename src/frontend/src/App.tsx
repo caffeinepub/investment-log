@@ -2,17 +2,19 @@ import { Toaster } from "@/components/ui/sonner";
 import { useRecordVisit } from "@/hooks/useQueries";
 import { LanguageProvider } from "@/i18n";
 import AdminPage from "@/pages/AdminPage";
+import FontPreview from "@/pages/FontPreview";
 import MeditationLog from "@/pages/MeditationLog";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
 
 function AppInner() {
-  // Fire-and-forget: record this visit once per session
   useRecordVisit();
 
-  const isAdmin = window.location.pathname === "/admin";
-  return isAdmin ? <AdminPage /> : <MeditationLog />;
+  const path = window.location.pathname;
+  if (path === "/admin") return <AdminPage />;
+  if (path === "/fonts") return <FontPreview />;
+  return <MeditationLog />;
 }
 
 export default function App() {
