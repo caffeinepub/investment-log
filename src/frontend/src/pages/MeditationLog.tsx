@@ -573,7 +573,7 @@ function StatCard({
         <p className="text-xs text-muted-foreground font-medium mb-1">
           {label}
         </p>
-        <p className="text-3xl font-bold text-primary leading-none">
+        <p className="text-2xl font-bold text-primary leading-none whitespace-nowrap">
           {value}
           {unit && (
             <span className="text-base font-medium text-muted-foreground ml-1">
