@@ -145,6 +145,22 @@ const PERSONALITY_FREQ: Record<string, number> = {
   empress: 396,
 };
 
+function playOneBell(ctx: AudioContext, freq: number, startTime: number) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, startTime);
+  // シンギングボウルのように：静かに立ち上がり、ゆっくりと消えていく（7秒の余韻）
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(0.25, startTime + 0.1);
+  gain.gain.setValueAtTime(0.25, startTime + 0.6);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 7.0);
+  osc.start(startTime);
+  osc.stop(startTime + 7.1);
+}
+
 function playAlarm(
   audioCtxRef: React.MutableRefObject<AudioContext | null>,
   personality: string,
@@ -157,19 +173,10 @@ function playAlarm(
     ctx.resume();
   }
   const freq = PERSONALITY_FREQ[personality] ?? 528;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(freq, ctx.currentTime);
-  // シンギングボウルのように：静かに立ち上がり、ゆっくりと消えていく
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.08);
-  gain.gain.setValueAtTime(0.25, ctx.currentTime + 0.5);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.0);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 3.1);
+  // 3回鳴らす：それぞれ8秒間隔、7秒の余韻
+  playOneBell(ctx, freq, ctx.currentTime);
+  playOneBell(ctx, freq, ctx.currentTime + 8);
+  playOneBell(ctx, freq, ctx.currentTime + 16);
 }
 
 type TimerStatus = "idle" | "running" | "paused" | "finished";
@@ -724,6 +731,45 @@ export default function MeditationLog() {
     return "linear-gradient(to bottom, #1a1a3e, #0d1b2a)";
   }, [currentHour]);
 
+  // Moon phase calculation (astronomical approximation)
+  const moonPhase = useMemo(() => {
+    const now = new Date();
+    // Known new moon: Jan 6, 2000 18:14 UTC (J2000 epoch)
+    const knownNewMoon = new Date("2000-01-06T18:14:00Z");
+    const lunarCycle = 29.53058867; // days
+    const elapsed =
+      (now.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24);
+    const age = ((elapsed % lunarCycle) + lunarCycle) % lunarCycle;
+    let emoji: string;
+    let key: string;
+    if (age < 1.85) {
+      emoji = "🌑";
+      key = "moonPhaseNew";
+    } else if (age < 7.38) {
+      emoji = "🌒";
+      key = "moonPhaseWaxingCrescent";
+    } else if (age < 9.22) {
+      emoji = "🌓";
+      key = "moonPhaseFirstQuarter";
+    } else if (age < 14.77) {
+      emoji = "🌔";
+      key = "moonPhaseWaxingGibbous";
+    } else if (age < 16.61) {
+      emoji = "🌕";
+      key = "moonPhaseFull";
+    } else if (age < 22.15) {
+      emoji = "🌖";
+      key = "moonPhaseWaningGibbous";
+    } else if (age < 23.99) {
+      emoji = "🌗";
+      key = "moonPhaseLastQuarter";
+    } else {
+      emoji = "🌘";
+      key = "moonPhaseWaningCrescent";
+    }
+    return { emoji, key, age: Math.floor(age) };
+  }, []);
+
   const { data: backendRecords = [], isLoading: recordsLoading } =
     useGetAllRecords();
   const { data: totalMinutes = BigInt(0) } = useGetTotalMinutes();
@@ -1108,7 +1154,7 @@ export default function MeditationLog() {
                     transition: "background 2s ease",
                   }}
                 >
-                  <div className="w-full mb-2">
+                  <div className="w-full mb-2 flex items-center justify-between">
                     <h2
                       className="text-base font-semibold"
                       style={{
@@ -1118,6 +1164,20 @@ export default function MeditationLog() {
                     >
                       {t("yourTree")}
                     </h2>
+                    <div
+                      className="flex items-center gap-1.5"
+                      style={{
+                        color: "rgba(255,255,255,0.75)",
+                        textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                      }}
+                    >
+                      <span style={{ fontSize: "1.1rem" }}>
+                        {moonPhase.emoji}
+                      </span>
+                      <span className="text-xs">
+                        {t(moonPhase.key as Parameters<typeof t>[0])}
+                      </span>
+                    </div>
                   </div>
                   <PlantGrowth
                     totalMinutes={totalMin}

@@ -14,6 +14,14 @@ const translations = {
     statsDaysUnit: "日",
 
     yourTree: "あなたの木",
+    moonPhaseNew: "新月",
+    moonPhaseWaxingCrescent: "三日月",
+    moonPhaseFirstQuarter: "上弦の月",
+    moonPhaseWaxingGibbous: "十三夜月",
+    moonPhaseFull: "満月",
+    moonPhaseWaningGibbous: "十六夜月",
+    moonPhaseLastQuarter: "下弦の月",
+    moonPhaseWaningCrescent: "有明月",
 
     timerTitle: "瞑想タイマー",
     timerDurationLabel: "時間（分）",
@@ -118,6 +126,14 @@ const translations = {
     statsDaysUnit: " days",
 
     yourTree: "Your Tree",
+    moonPhaseNew: "New Moon",
+    moonPhaseWaxingCrescent: "Waxing Crescent",
+    moonPhaseFirstQuarter: "First Quarter",
+    moonPhaseWaxingGibbous: "Waxing Gibbous",
+    moonPhaseFull: "Full Moon",
+    moonPhaseWaningGibbous: "Waning Gibbous",
+    moonPhaseLastQuarter: "Last Quarter",
+    moonPhaseWaningCrescent: "Waning Crescent",
 
     timerTitle: "Meditation Timer",
     timerDurationLabel: "Minutes",
