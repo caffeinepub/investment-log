@@ -1787,13 +1787,42 @@ export default function MeditationLog() {
                       color: "rgba(255,255,255,0.85)",
                     }}
                   >
-                    {Array.from({ length: 27 }, (_, i) => i - 12).map((tz) => (
+                    {[
+                      { offset: -12, city: "Baker Island" },
+                      { offset: -11, city: "Samoa" },
+                      { offset: -10, city: "Honolulu" },
+                      { offset: -9, city: "Anchorage" },
+                      { offset: -8, city: "Los Angeles" },
+                      { offset: -7, city: "Denver" },
+                      { offset: -6, city: "Chicago" },
+                      { offset: -5, city: "New York" },
+                      { offset: -4, city: "Santiago" },
+                      { offset: -3, city: "São Paulo" },
+                      { offset: -2, city: "Fernando de Noronha" },
+                      { offset: -1, city: "Azores" },
+                      { offset: 0, city: "London" },
+                      { offset: 1, city: "Paris / Berlin" },
+                      { offset: 2, city: "Cairo / Athens" },
+                      { offset: 3, city: "Moscow / Dubai" },
+                      { offset: 4, city: "Dubai" },
+                      { offset: 5, city: "Karachi" },
+                      { offset: 5.5, city: "Mumbai / Delhi" },
+                      { offset: 6, city: "Dhaka" },
+                      { offset: 7, city: "Bangkok / Jakarta" },
+                      { offset: 8, city: "Beijing / Singapore" },
+                      { offset: 9, city: "Tokyo / Seoul" },
+                      { offset: 10, city: "Sydney" },
+                      { offset: 11, city: "Noumea" },
+                      { offset: 12, city: "Auckland" },
+                      { offset: 13, city: "Samoa (DST)" },
+                    ].map(({ offset, city }) => (
                       <SelectItem
-                        key={tz}
-                        value={String(tz)}
+                        key={offset}
+                        value={String(offset)}
                         style={{ color: "rgba(255,255,255,0.85)" }}
                       >
-                        {tz >= 0 ? `UTC+${tz}` : `UTC${tz}`}
+                        {offset >= 0 ? `UTC+${offset}` : `UTC${offset}`} —{" "}
+                        {city}
                       </SelectItem>
                     ))}
                   </SelectContent>
