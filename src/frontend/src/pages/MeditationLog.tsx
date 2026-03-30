@@ -5,8 +5,21 @@ import PlantGrowth, { type TreePersonality } from "@/components/PlantGrowth";
 import { WhisperBubble } from "@/components/WhisperBubble";
 import ZenLoadingScreen from "@/components/ZenLoadingScreen";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -45,11 +58,18 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  birthToUTC,
+  getMoonAspect,
+  getMoonEclipticLongitude,
+  getZodiacInfo,
+} from "../utils/moonAstrology";
 
 const PERSONALITY_ORDER: TreePersonality[] = ["star", "flow", "empress"];
 const TIMER_STORAGE_KEY = "meditationTimerState";
 const TREE_STATE_STORAGE_KEY = "meditationTreeState";
 const RECORDS_STORAGE_KEY = "meditationRecords";
+const NATAL_DATA_KEY = "meditationNatalData";
 
 // Serialize records to localStorage (convert BigInt to number)
 function saveRecordsToLocalStorage(recs: MeditationRecordWithId[]) {
@@ -98,28 +118,16 @@ type PersistedTimerState = {
   targetMinutes: number;
 };
 
+interface NatalData {
+  birthDate: string; // "YYYY-MM-DD"
+  birthTime: string; // "HH:MM"
+  timezoneOffset: number; // hours, e.g. 9 for JST
+}
+
 function vibrate(pattern: number | number[]) {
   if ("vibrate" in navigator) {
     navigator.vibrate(pattern);
   }
-}
-
-function formatDuration(minutes: bigint, lang: "ja" | "en"): string {
-  const m = Number(minutes);
-  if (lang === "en") {
-    if (m >= 60) {
-      const h = Math.floor(m / 60);
-      const rem = m % 60;
-      return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
-    }
-    return `${m} min`;
-  }
-  if (m >= 60) {
-    const h = Math.floor(m / 60);
-    const rem = m % 60;
-    return rem > 0 ? `${h} 時間 ${rem} 分` : `${h} 時間`;
-  }
-  return `${m} 分`;
 }
 
 function getTodayStr(): string {
@@ -557,7 +565,7 @@ function StatCard({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: React.ReactNode;
   unit?: string;
   ocid: string;
 }) {
@@ -573,7 +581,7 @@ function StatCard({
         <p className="text-xs text-muted-foreground font-medium mb-1">
           {label}
         </p>
-        <p className="text-2xl font-bold text-primary leading-none whitespace-nowrap">
+        <p className="text-2xl font-bold text-primary leading-none">
           {value}
           {unit && (
             <span className="text-base font-medium text-muted-foreground ml-1">
@@ -710,6 +718,20 @@ export default function MeditationLog() {
   const [editMemo, setEditMemo] = useState("");
   const [timerJustFinished, setTimerJustFinished] = useState(false);
 
+  // Natal moon astrology state
+  const [natalData, setNatalData] = useState<NatalData | null>(() => {
+    try {
+      const stored = localStorage.getItem(NATAL_DATA_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [showNatalModal, setShowNatalModal] = useState(false);
+  const [natalFormDate, setNatalFormDate] = useState("");
+  const [natalFormTime, setNatalFormTime] = useState("12:00");
+  const [natalFormTz, setNatalFormTz] = useState(9);
+
   // Time-of-day sky gradient
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
 
@@ -769,6 +791,28 @@ export default function MeditationLog() {
     }
     return { emoji, key, age: Math.floor(age) };
   }, []);
+
+  const transitMoonLon = useMemo(
+    () => getMoonEclipticLongitude(new Date()),
+    [],
+  );
+
+  const natalMoonInfo = useMemo(() => {
+    if (!natalData?.birthDate || !natalData?.birthTime) return null;
+    try {
+      const birthUTC = birthToUTC(
+        natalData.birthDate,
+        natalData.birthTime,
+        natalData.timezoneOffset,
+      );
+      const natalLon = getMoonEclipticLongitude(birthUTC);
+      const zodiac = getZodiacInfo(natalLon);
+      const aspect = getMoonAspect(natalLon, transitMoonLon);
+      return { zodiac, aspect, natalLon };
+    } catch {
+      return null;
+    }
+  }, [natalData, transitMoonLon]);
 
   const { data: backendRecords = [], isLoading: recordsLoading } =
     useGetAllRecords();
@@ -933,6 +977,27 @@ export default function MeditationLog() {
       cycleCompleteShown: false,
     });
   }
+
+  const saveNatalData = () => {
+    if (!natalFormDate) return;
+    const data: NatalData = {
+      birthDate: natalFormDate,
+      birthTime: natalFormTime,
+      timezoneOffset: natalFormTz,
+    };
+    setNatalData(data);
+    localStorage.setItem(NATAL_DATA_KEY, JSON.stringify(data));
+    setShowNatalModal(false);
+  };
+
+  const openNatalModal = () => {
+    if (natalData) {
+      setNatalFormDate(natalData.birthDate);
+      setNatalFormTime(natalData.birthTime);
+      setNatalFormTz(natalData.timezoneOffset);
+    }
+    setShowNatalModal(true);
+  };
 
   async function handleStayHere() {
     setStayHere(true);
@@ -1133,7 +1198,28 @@ export default function MeditationLog() {
                   ocid="stats.total_time.card"
                   icon={<Clock className="w-5 h-5 text-primary" />}
                   label={t("statsTotalTime")}
-                  value={formatDuration(totalMinutes, lang)}
+                  value={(() => {
+                    const m = Number(totalMinutes);
+                    if (m >= 60) {
+                      const h = Math.floor(m / 60);
+                      const rem = m % 60;
+                      if (lang === "en") {
+                        return (
+                          <span className="flex flex-col leading-tight">
+                            <span>{h}h</span>
+                            {rem > 0 && <span className="text-xl">{rem}m</span>}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="flex flex-col leading-tight">
+                          <span>{h}時間</span>
+                          {rem > 0 && <span className="text-xl">{rem}分</span>}
+                        </span>
+                      );
+                    }
+                    return lang === "en" ? `${m} min` : `${m} 分`;
+                  })()}
                 />
                 <StatCard
                   ocid="stats.days.card"
@@ -1164,19 +1250,50 @@ export default function MeditationLog() {
                     >
                       {t("yourTree")}
                     </h2>
-                    <div
-                      className="flex items-center gap-1.5"
-                      style={{
-                        color: "rgba(255,255,255,0.75)",
-                        textShadow: "0 1px 3px rgba(0,0,0,0.4)",
-                      }}
-                    >
-                      <span style={{ fontSize: "1.1rem" }}>
-                        {moonPhase.emoji}
-                      </span>
-                      <span className="text-xs">
-                        {t(moonPhase.key as Parameters<typeof t>[0])}
-                      </span>
+                    <div className="flex flex-col items-end gap-0.5">
+                      {/* Row 1: moon phase + settings gear */}
+                      <div
+                        className="flex items-center gap-1.5"
+                        style={{
+                          color: "rgba(255,255,255,0.75)",
+                          textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                        }}
+                      >
+                        <span style={{ fontSize: "1.1rem" }}>
+                          {moonPhase.emoji}
+                        </span>
+                        <span className="text-xs">
+                          {t(moonPhase.key as Parameters<typeof t>[0])}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={openNatalModal}
+                          className="text-xs opacity-50 hover:opacity-80 transition-opacity ml-1"
+                          style={{ lineHeight: 1 }}
+                          aria-label={t("natalMoonSettings")}
+                          data-ocid="natal.open_modal_button"
+                        >
+                          ⚙
+                        </button>
+                      </div>
+                      {/* Row 2: natal moon aspect (only when natal data is configured) */}
+                      {natalMoonInfo && (
+                        <div
+                          className="text-xs"
+                          style={{
+                            color: "rgba(255,255,255,0.55)",
+                            textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                          }}
+                        >
+                          {natalMoonInfo.zodiac.symbol}{" "}
+                          {lang === "ja"
+                            ? natalMoonInfo.zodiac.signJa
+                            : natalMoonInfo.zodiac.signEn}{" "}
+                          {natalMoonInfo.aspect
+                            ? `${natalMoonInfo.aspect.symbol} ${natalMoonInfo.aspect.orb > 0 ? "+" : ""}${natalMoonInfo.aspect.orb}°`
+                            : "—"}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <PlantGrowth
@@ -1538,6 +1655,184 @@ export default function MeditationLog() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Natal Moon Settings Modal */}
+        <Dialog open={showNatalModal} onOpenChange={setShowNatalModal}>
+          <DialogContent
+            className="max-w-sm rounded-2xl border-0"
+            style={{
+              background: "linear-gradient(to bottom, #1a1a3e, #0d1b2a)",
+              color: "rgba(255,255,255,0.9)",
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle
+                className="text-sm font-medium"
+                style={{ color: "rgba(255,255,255,0.9)" }}
+              >
+                {t("natalMoonSettings")}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-2">
+              {/* Current natal moon info */}
+              {natalMoonInfo && (
+                <div
+                  className="text-xs rounded-xl px-3 py-2"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: "rgba(255,255,255,0.6)",
+                  }}
+                >
+                  {t("natalMoonLabel")}:{" "}
+                  <span style={{ color: "rgba(255,255,255,0.85)" }}>
+                    {natalMoonInfo.zodiac.symbol}{" "}
+                    {lang === "ja"
+                      ? natalMoonInfo.zodiac.signJa
+                      : natalMoonInfo.zodiac.signEn}{" "}
+                    {natalMoonInfo.zodiac.degree.toFixed(1)}°
+                  </span>
+                  {natalMoonInfo.aspect && (
+                    <>
+                      {" · "}
+                      {t("natalAspectLabel")}:{" "}
+                      <span style={{ color: "rgba(255,255,255,0.85)" }}>
+                        {natalMoonInfo.aspect.symbol}{" "}
+                        {lang === "ja"
+                          ? natalMoonInfo.aspect.nameJa
+                          : natalMoonInfo.aspect.nameEn}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Birth date */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="natal-date"
+                  className="text-xs"
+                  style={{ color: "rgba(255,255,255,0.55)" }}
+                >
+                  {t("natalBirthDate")}
+                </label>
+                <input
+                  id="natal-date"
+                  type="date"
+                  value={natalFormDate}
+                  onChange={(e) => setNatalFormDate(e.target.value)}
+                  className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    color: "rgba(255,255,255,0.85)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    colorScheme: "dark",
+                  }}
+                  data-ocid="natal.input"
+                />
+              </div>
+
+              {/* Birth time */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="natal-time"
+                  className="text-xs"
+                  style={{ color: "rgba(255,255,255,0.55)" }}
+                >
+                  {t("natalBirthTime")}
+                </label>
+                <input
+                  id="natal-time"
+                  type="time"
+                  value={natalFormTime}
+                  onChange={(e) => setNatalFormTime(e.target.value)}
+                  className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    color: "rgba(255,255,255,0.85)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    colorScheme: "dark",
+                  }}
+                  data-ocid="natal.input"
+                />
+              </div>
+
+              {/* Timezone */}
+              <div className="space-y-1.5">
+                <span
+                  className="text-xs"
+                  style={{ color: "rgba(255,255,255,0.55)" }}
+                >
+                  {t("natalTimezone")}
+                </span>
+                <Select
+                  value={String(natalFormTz)}
+                  onValueChange={(v) => setNatalFormTz(Number(v))}
+                >
+                  <SelectTrigger
+                    className="w-full rounded-xl text-sm"
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      color: "rgba(255,255,255,0.85)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                    }}
+                    data-ocid="natal.select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent
+                    style={{
+                      background: "#1a1a3e",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "rgba(255,255,255,0.85)",
+                    }}
+                  >
+                    {Array.from({ length: 27 }, (_, i) => i - 12).map((tz) => (
+                      <SelectItem
+                        key={tz}
+                        value={String(tz)}
+                        style={{ color: "rgba(255,255,255,0.85)" }}
+                      >
+                        {tz >= 0 ? `UTC+${tz}` : `UTC${tz}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={saveNatalData}
+                  disabled={!natalFormDate}
+                  className="flex-1 rounded-xl py-2 text-sm font-medium transition-opacity disabled:opacity-40"
+                  style={{
+                    background: "rgba(180,150,80,0.25)",
+                    color: "rgba(255,220,120,0.9)",
+                    border: "1px solid rgba(180,150,80,0.3)",
+                  }}
+                  data-ocid="natal.save_button"
+                >
+                  {t("natalSave")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNatalModal(false)}
+                  className="flex-1 rounded-xl py-2 text-sm transition-opacity"
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    color: "rgba(255,255,255,0.5)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                  data-ocid="natal.cancel_button"
+                >
+                  {t("natalCancel")}
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </>
   );
