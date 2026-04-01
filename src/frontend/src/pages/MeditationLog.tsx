@@ -200,7 +200,7 @@ function MeditationTimer({
   onWhisper?: () => void;
   personality?: string;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [remaining, setRemaining] = useState(10 * 60);
@@ -215,6 +215,11 @@ function MeditationTimer({
   const onTimerFinishedRef = useRef(onTimerFinished);
   const onWhisperRef = useRef(onWhisper);
   const personalityRef = useRef(personality);
+  // Wake lock
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wakeLockRef = useRef<any>(null);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+  const [wakeLockUnsupported, setWakeLockUnsupported] = useState(false);
 
   useEffect(() => {
     personalityRef.current = personality;
@@ -232,6 +237,28 @@ function MeditationTimer({
   const progress =
     status === "idle" ? 0 : ((totalSeconds - remaining) / totalSeconds) * 100;
 
+  const requestWakeLock = useCallback(async () => {
+    if (!("wakeLock" in navigator)) return;
+    try {
+      wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+      setWakeLockActive(true);
+      wakeLockRef.current.addEventListener("release", () => {
+        setWakeLockActive(false);
+        wakeLockRef.current = null;
+      });
+    } catch {
+      setWakeLockActive(false);
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      await wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+    setWakeLockActive(false);
+  }, []);
+
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -242,6 +269,7 @@ function MeditationTimer({
   const handleTimerZero = useCallback(
     (elapsedMinutes: number) => {
       clearTimer();
+      releaseWakeLock();
       localStorage.removeItem(TIMER_STORAGE_KEY);
       setStatus("finished");
       playAlarm(audioCtxRef, personalityRef.current ?? "flow");
@@ -251,7 +279,7 @@ function MeditationTimer({
       onTimerFinishedRef.current?.();
       onWhisperRef.current?.();
     },
-    [clearTimer, onElapsedMinutes],
+    [clearTimer, releaseWakeLock, onElapsedMinutes],
   );
 
   const startInterval = useCallback(() => {
@@ -318,6 +346,10 @@ function MeditationTimer({
         statusRef.current === "running" &&
         startTimeRef.current !== null
       ) {
+        // Re-acquire wake lock after page becomes visible (auto-released when hidden)
+        if (!wakeLockRef.current && "wakeLock" in navigator) {
+          requestWakeLock();
+        }
         const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
         const newRemaining = Math.max(0, remainingAtStartRef.current - elapsed);
         setRemaining(newRemaining);
@@ -330,12 +362,20 @@ function MeditationTimer({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [handleTimerZero]);
+    // biome-ignore lint/correctness/useExhaustiveDependencies: requestWakeLock is stable
+  }, [handleTimerZero, requestWakeLock]);
 
   function handleStart() {
     // Silently request notification permission when timer starts
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
+    }
+    // Request screen wake lock
+    if (!("wakeLock" in navigator)) {
+      setWakeLockUnsupported(true);
+    } else {
+      setWakeLockUnsupported(false);
+      requestWakeLock();
     }
 
     let initialRemaining: number;
@@ -368,6 +408,7 @@ function MeditationTimer({
 
   function handlePause() {
     clearTimer();
+    releaseWakeLock();
     startTimeRef.current = null;
     setStatus("paused");
 
@@ -388,6 +429,7 @@ function MeditationTimer({
 
   function handleReset() {
     clearTimer();
+    releaseWakeLock();
     startTimeRef.current = null;
     localStorage.removeItem(TIMER_STORAGE_KEY);
     setStatus("idle");
@@ -549,6 +591,25 @@ function MeditationTimer({
             >
               {t("timerReset")}
             </Button>
+          )}
+
+          {wakeLockActive && (
+            <p
+              className="text-xs text-center"
+              style={{ color: "rgba(255,255,255,0.4)", marginTop: "0.25rem" }}
+            >
+              🌙 {lang === "ja" ? "画面オンを維持中" : "Screen kept awake"}
+            </p>
+          )}
+          {wakeLockUnsupported && status === "running" && (
+            <p
+              className="text-xs text-center"
+              style={{ color: "rgba(255,255,255,0.3)", marginTop: "0.25rem" }}
+            >
+              {lang === "ja"
+                ? "iOSの場合は画面が消えないようにご設定ください"
+                : "For best experience on iOS, keep the screen on manually"}
+            </p>
           )}
         </div>
       </div>
@@ -712,11 +773,13 @@ export default function MeditationLog() {
   const [cycleCompleteOpen, setCycleCompleteOpen] = useState(false);
   const [cycleTransition, setCycleTransition] = useState(false);
   const [whisperPhrase, setWhisperPhrase] = useState<string | null>(null);
+  const [moodSelection, setMoodSelection] = useState(3);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState<bigint | null>(null);
   const [editDuration, setEditDuration] = useState("");
   const [editMemo, setEditMemo] = useState("");
   const [timerJustFinished, setTimerJustFinished] = useState(false);
+  const hasShownFirstWhisperRef = useRef<boolean>(false);
 
   // Natal moon astrology state
   const [natalData, setNatalData] = useState<NatalData | null>(() => {
@@ -937,14 +1000,14 @@ export default function MeditationLog() {
     prevStageRef.current = stage;
   }, [stage, treeState, personality, stayHere]);
 
-  // Show whisper phrase on app open (mount)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only
+  // Show whisper phrase once personality is loaded from backend
   useEffect(() => {
-    if (personality) {
+    if (personality && !hasShownFirstWhisperRef.current) {
+      hasShownFirstWhisperRef.current = true;
       const phrase = rollWhisper(stage, personality);
       if (phrase) setWhisperPhrase(phrase);
     }
-  }, []);
+  }, [personality, stage]);
 
   // Show whisper phrase when returning to the app
   useEffect(() => {
@@ -1090,7 +1153,7 @@ export default function MeditationLog() {
       await addRecord.mutateAsync({
         date,
         duration: BigInt(dur),
-        moodBefore: BigInt(3),
+        moodBefore: BigInt(moodSelection),
         moodAfter: BigInt(3),
         memo,
       });
@@ -1285,13 +1348,25 @@ export default function MeditationLog() {
                             textShadow: "0 1px 3px rgba(0,0,0,0.4)",
                           }}
                         >
-                          {natalMoonInfo.zodiac.symbol}{" "}
-                          {lang === "ja"
-                            ? natalMoonInfo.zodiac.signJa
-                            : natalMoonInfo.zodiac.signEn}{" "}
-                          {natalMoonInfo.aspect
-                            ? `${natalMoonInfo.aspect.symbol} ${natalMoonInfo.aspect.orb > 0 ? "+" : ""}${natalMoonInfo.aspect.orb}°`
-                            : "—"}
+                          {(() => {
+                            const transitZodiac = getZodiacInfo(transitMoonLon);
+                            const rawDiff = Math.abs(
+                              transitMoonLon - natalMoonInfo.natalLon,
+                            );
+                            const normalizedDiff =
+                              rawDiff > 180 ? 360 - rawDiff : rawDiff;
+                            return (
+                              <>
+                                🌙 {transitZodiac.symbol}{" "}
+                                {lang === "ja"
+                                  ? transitZodiac.signJa
+                                  : transitZodiac.signEn}{" "}
+                                {natalMoonInfo.aspect
+                                  ? `${natalMoonInfo.aspect.symbol} ${natalMoonInfo.aspect.orb > 0 ? "+" : ""}${natalMoonInfo.aspect.orb}°`
+                                  : `${normalizedDiff.toFixed(1)}°`}
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
@@ -1377,6 +1452,25 @@ export default function MeditationLog() {
                         className="rounded-lg border-border resize-none"
                         data-ocid="form.memo.textarea"
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        {lang === "ja" ? "気分" : "Mood"}
+                      </Label>
+                      <div className="flex gap-2" data-ocid="form.mood_select">
+                        {([1, 2, 3, 4, 5] as const).map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => setMoodSelection(v)}
+                            className={`flex-1 text-xl py-1.5 rounded-lg transition-all ${moodSelection === v ? "bg-primary/20 ring-1 ring-primary/50" : "opacity-40 hover:opacity-70"}`}
+                            data-ocid={`form.mood.${v}`}
+                          >
+                            {["😔", "😐", "🙂", "😊", "✨"][v - 1]}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <Button
@@ -1534,6 +1628,33 @@ export default function MeditationLog() {
                                     {t("noMemo")}
                                   </p>
                                 )}
+                                {(() => {
+                                  const d = new Date(
+                                    `${item.record.date}T12:00:00`,
+                                  );
+                                  const lon = getMoonEclipticLongitude(d);
+                                  const z = getZodiacInfo(lon);
+                                  const moodEmojis = [
+                                    "😔",
+                                    "😐",
+                                    "🙂",
+                                    "😊",
+                                    "✨",
+                                  ];
+                                  const mood = Number(item.record.moodBefore);
+                                  return (
+                                    <p className="text-[10px] text-muted-foreground/60 mt-1.5 flex gap-2 items-center">
+                                      <span>
+                                        🌙 {z.symbol}
+                                        {lang === "ja" ? z.signJa : z.signEn}{" "}
+                                        {Math.floor(z.degree)}°
+                                      </span>
+                                      {mood >= 1 && mood <= 5 && (
+                                        <span>{moodEmojis[mood - 1]}</span>
+                                      )}
+                                    </p>
+                                  );
+                                })()}
                               </div>
 
                               {editMode && (
@@ -1541,6 +1662,7 @@ export default function MeditationLog() {
                                   <button
                                     type="button"
                                     onClick={() => {
+                                      updateRecord.reset();
                                       setEditingId(item.id);
                                       setEditDuration(
                                         String(Number(item.record.duration)),

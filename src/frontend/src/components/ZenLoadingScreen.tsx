@@ -1,3 +1,4 @@
+import { useLanguage } from "@/i18n";
 import { type ZenPhrase, pickRandomZenPhrase } from "@/lib/zenPhrases";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
@@ -13,6 +14,7 @@ export default function ZenLoadingScreen({ isReady, onDone }: Props) {
   const timerDoneRef = useRef(false);
   const readyRef = useRef(isReady);
   const onDoneRef = useRef(onDone);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     onDoneRef.current = onDone;
@@ -44,6 +46,9 @@ export default function ZenLoadingScreen({ isReady, onDone }: Props) {
     };
   }, []);
 
+  const displayQuote = lang === "en" ? phrase.quoteEn : phrase.quote;
+  const displayAuthor = lang === "en" ? phrase.authorEn : phrase.author;
+
   return (
     <AnimatePresence onExitComplete={() => onDoneRef.current()}>
       {visible && (
@@ -64,11 +69,13 @@ export default function ZenLoadingScreen({ isReady, onDone }: Props) {
               className="text-2xl font-light leading-relaxed tracking-wide text-foreground/90"
               style={{
                 fontFamily:
-                  "'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif",
+                  lang === "en"
+                    ? "'Cormorant Garamond', Georgia, serif"
+                    : "'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif",
                 whiteSpace: "pre-line",
               }}
             >
-              {phrase.quote}
+              {displayQuote}
             </motion.p>
             <motion.p
               initial={{ opacity: 0 }}
@@ -80,7 +87,7 @@ export default function ZenLoadingScreen({ isReady, onDone }: Props) {
                   "'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif",
               }}
             >
-              — {phrase.author}
+              — {displayAuthor}
             </motion.p>
           </div>
         </motion.div>

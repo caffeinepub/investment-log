@@ -1,40 +1,30 @@
-# Meditation Log
+# Meditation Log v62
 
 ## Current State
-
-The app displays the current moon phase (emoji + phase name) near the tree header using a simple J2000-based synodic cycle calculation. It shows the emoji and translated phase name only (e.g., "🌔 上弦の月").
-
-The app supports Japanese and English via i18n.tsx (flat key structure). User preferences (language, tree state, records, timer state) are persisted to localStorage.
-
-No natal astrology data is currently stored or displayed.
+- Whisper phrases (木の言葉) never appear because the mount useEffect fires before `personality` is loaded from the backend
+- ZenLoadingScreen shows Japanese phrases only; English translations are missing in `zenPhrases.ts`
+- Records store `moodBefore`/`moodAfter` (hardcoded to 3) and `memo`; no mood selection UI exists
+- Transit moon longitude can be computed for any past date using `getMoonEclipticLongitude(date)` in `moonAstrology.ts`
 
 ## Requested Changes (Diff)
 
 ### Add
-- `src/frontend/src/utils/moonAstrology.ts`: Astronomical utilities
-  - `getJulianDay(date: Date): number`
-  - `getMoonEclipticLongitude(date: Date): number` — Jean Meeus simplified algorithm, ~0.3° accuracy
-  - `getZodiacSign(longitude: number): { signJa: string, signEn: string, degree: number }`
-  - `getMoonAspect(natalLon: number, transitLon: number): AspectInfo | null` — returns major aspect (Conjunction 0°, Sextile 60°, Square 90°, Trine 120°, Opposition 180°) with symbol, Japanese/English names, and signed orb value
-- Natal birth data settings UI: a small gear/settings icon near the moon display opens a modal for inputting birth date, birth time (local), and timezone offset (select, −12 to +14, default +9 for JST)
-- Natal data stored in localStorage under key `"meditationNatalData"` as `{ birthDate: string, birthTime: string, timezoneOffset: number }`
-- Aspect display near the moon phase: when natal data is set, show natal moon sign + current aspect symbol + orb (e.g., "♏ 蠍座 △ +2.3°" in Japanese, "♏ Scorpio △ +2.3°" in English)
-- New i18n keys: aspect names in Japanese/English, settings labels, zodiac sign names
+- English translations for all 21 zen phrases in `zenPhrases.ts` (new fields `quoteEn`, `authorEn`)
+- Mood/expression selector in the record form: 5 emoji options (😔😐🙂😄✨ mapped to 1-5), stored in existing `moodBefore` field; optional, defaults to 3
+- Moon sign + degree display in each record list item, computed from record date using `getMoonEclipticLongitude`
 
 ### Modify
-- `MeditationLog.tsx`: Add natal settings modal, compute natal moon longitude from stored birth data, compute aspect between natal and transit moon, display below or alongside existing moon phase display
-- `i18n.tsx`: Add translation keys for aspect names, zodiac signs, settings UI labels
+- `ZenLoadingScreen`: use current language (from i18n context) to show `quoteEn`/`authorEn` when language is English
+- Whisper phrases: trigger after personality is first loaded (not on mount). Use a `useRef` flag `hasShownFirstWhisper` and fire whisper in a `useEffect` that depends on `personality`, running once when personality first becomes non-empty
+- Record display: show moon emoji + sign + degree small below date/duration
+- `handleSubmit`: pass selected mood value instead of hardcoded 3
 
 ### Remove
-- Nothing removed
+- Nothing
 
 ## Implementation Plan
-
-1. Create `moonAstrology.ts` with Julian Day, moon ecliptic longitude (Meeus), zodiac sign lookup, and aspect calculation (5 major aspects with standard orbs: Conjunction/Square/Trine/Opposition ±8°, Sextile ±6°)
-2. Add `"meditationNatalData"` localStorage read/write logic in MeditationLog.tsx
-3. Add natal settings modal (date + time + timezone offset select) that saves to localStorage
-4. Add a small settings icon (⚙) near moon display to open the modal
-5. Compute transit moon longitude using `getMoonEclipticLongitude(new Date())`
-6. Compute natal moon longitude using birth UTC time
-7. Display natal sign + aspect (symbol + name abbreviated + signed orb) in a second line under the moon phase, only when natal data is configured
-8. Add i18n keys for all new text (aspect names in JA/EN, zodiac signs in JA/EN, settings modal labels)
+1. Update `zenPhrases.ts`: add `quoteEn` and `authorEn` fields for all 21 phrases
+2. Update `ZenLoadingScreen`: import language from i18n context, show English fields when `lang === 'en'`
+3. Fix whisper trigger in `MeditationLog.tsx`: replace mount-only useEffect with one that fires when personality first loads
+4. Add mood emoji selector to record form in `MeditationLog.tsx`; wire to `moodBefore` in `addRecord`
+5. In record list, compute and display moon sign+degree from record date

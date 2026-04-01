@@ -106,11 +106,10 @@ export function rollWhisper(
   stage: number,
   personality: TreePersonality,
 ): string | null {
-  // Stage-based whisper probability — increased for early stages
+  // Increased probability for early stages so new users encounter phrases
   let whisperChance: number;
-  if (stage <= 5) whisperChance = 0.7;
-  else if (stage <= 10) whisperChance = 0.5;
-  else if (stage <= 20) whisperChance = 0.3;
+  if (stage <= 10) whisperChance = 0.85;
+  else if (stage <= 20) whisperChance = 0.7;
   else if (stage <= 30) whisperChance = 0.4;
   else if (stage <= 40) whisperChance = 0.55;
   else whisperChance = 0.7;
