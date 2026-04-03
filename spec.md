@@ -1,30 +1,29 @@
-# Meditation Log v62
+# Meditation Log
 
 ## Current State
-- Whisper phrases (木の言葉) never appear because the mount useEffect fires before `personality` is loaded from the backend
-- ZenLoadingScreen shows Japanese phrases only; English translations are missing in `zenPhrases.ts`
-- Records store `moodBefore`/`moodAfter` (hardcoded to 3) and `memo`; no mood selection UI exists
-- Transit moon longitude can be computed for any past date using `getMoonEclipticLongitude(date)` in `moonAstrology.ts`
+v62 is live. The app has tree visualization, meditation timer, record logging with moon/mood, natal moon aspect display, and multilingual support (ja/en).
 
 ## Requested Changes (Diff)
 
 ### Add
-- English translations for all 21 zen phrases in `zenPhrases.ts` (new fields `quoteEn`, `authorEn`)
-- Mood/expression selector in the record form: 5 emoji options (😔😐🙂😄✨ mapped to 1-5), stored in existing `moodBefore` field; optional, defaults to 3
-- Moon sign + degree display in each record list item, computed from record date using `getMoonEclipticLongitude`
+- Moon age number displayed next to phase name (e.g. `🌕 満月 · 14`)
+- Translation keys: `editCancel`, `editSave`, `wakeLockActive`, `wakeLockUnsupported`, `moodLabel` in both ja/en
+- Fade-in animation on timer reset button when timer finishes
 
 ### Modify
-- `ZenLoadingScreen`: use current language (from i18n context) to show `quoteEn`/`authorEn` when language is English
-- Whisper phrases: trigger after personality is first loaded (not on mount). Use a `useRef` flag `hasShownFirstWhisper` and fire whisper in a `useEffect` that depends on `personality`, running once when personality first becomes non-empty
-- Record display: show moon emoji + sign + degree small below date/duration
-- `handleSubmit`: pass selected mood value instead of hardcoded 3
+- Record moon display: when natal data is set, show aspect+orb instead of raw degree
+- WhisperBubble font: remove old mincho override, inherit app-wide font stack; scale timeout by phrase length
+- Moon header Row 2 opacity: 0.55 → 0.75 (unified with Row 1); gear button opacity-50 → opacity-65
+- Inline edit form: replace raw `<input>`/`<textarea>` with `<Input>`/`<Textarea>` UI components
+- Empty state: add visual hierarchy (title brighter/medium, subtitle smaller/dimmer)
+- WakeLock/mood label: replace inline lang ternaries with `t()` calls
+- `timerDone` translation: updated to use ☀️ instead of 🙏 in both languages
 
 ### Remove
-- Nothing
+- Nothing removed
 
 ## Implementation Plan
-1. Update `zenPhrases.ts`: add `quoteEn` and `authorEn` fields for all 21 phrases
-2. Update `ZenLoadingScreen`: import language from i18n context, show English fields when `lang === 'en'`
-3. Fix whisper trigger in `MeditationLog.tsx`: replace mount-only useEffect with one that fires when personality first loads
-4. Add mood emoji selector to record form in `MeditationLog.tsx`; wire to `moodBefore` in `addRecord`
-5. In record list, compute and display moon sign+degree from record date
+1. Update i18n.tsx with new translation keys
+2. Fix WhisperBubble font
+3. Apply all MeditationLog.tsx changes in one pass
+4. Validate build

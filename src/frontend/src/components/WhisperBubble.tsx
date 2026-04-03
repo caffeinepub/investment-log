@@ -9,9 +9,11 @@ interface WhisperBubbleProps {
 export function WhisperBubble({ phrase, onDone }: WhisperBubbleProps) {
   useEffect(() => {
     if (!phrase) return;
+    // Scale timeout by phrase length for comfortable reading
+    const duration = Math.max(3500, phrase.length * 80);
     const timer = setTimeout(() => {
       onDone();
-    }, 4000);
+    }, duration);
     return () => clearTimeout(timer);
   }, [phrase, onDone]);
 
@@ -36,7 +38,6 @@ export function WhisperBubble({ phrase, onDone }: WhisperBubbleProps) {
               color: "oklch(0.82 0.06 78)",
               fontStyle: "italic",
               letterSpacing: "0.01em",
-              fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif",
               border: "1px solid rgba(255,255,255,0.12)",
             }}
           >

@@ -32,7 +32,7 @@ const translations = {
     timerReady: "準備中",
     timerRunning: "瞑想中",
     timerPaused: "一時停止中",
-    timerDone: "お疲れさまでした 🙏",
+    timerDone: "お疲れさまでした ☀️",
 
     formTitle: "瞑想記録を追加",
     formDate: "日付",
@@ -110,6 +110,8 @@ const translations = {
     adminNoFeedback: "まだ届いていません",
     editToggle: "編集",
     editDone: "完了",
+    editCancel: "キャンセル",
+    editSave: "保存",
     stayHereLabel: "この木とともに… ✦",
     notifTitle: "瞑想が終わりました ☀️",
     notifBody: "静かに、目を開けてください。",
@@ -124,6 +126,9 @@ const translations = {
     natalMoonLabel: "ネイティブ月",
     natalAspectLabel: "月のアスペクト",
     natalAspectNone: "アスペクトなし",
+    wakeLockActive: "画面オンを維持中",
+    wakeLockUnsupported: "iOSの場合は画面が消えないようにご設定ください",
+    moodLabel: "気分",
   },
   en: {
     appTitle: "Meditation Log",
@@ -154,7 +159,7 @@ const translations = {
     timerReady: "Ready",
     timerRunning: "Meditating",
     timerPaused: "Paused",
-    timerDone: "Well done 🙏",
+    timerDone: "Well done ☀️",
 
     formTitle: "Add a Record",
     formDate: "Date",
@@ -232,6 +237,8 @@ const translations = {
     adminNoFeedback: "None yet",
     editToggle: "Edit",
     editDone: "Done",
+    editCancel: "Cancel",
+    editSave: "Save",
     stayHereLabel: "Staying with this tree… ✦",
     notifTitle: "Meditation complete ☀️",
     notifBody: "Gently, open your eyes.",
@@ -246,6 +253,10 @@ const translations = {
     natalMoonLabel: "Natal Moon",
     natalAspectLabel: "Moon Aspect",
     natalAspectNone: "No major aspect",
+    wakeLockActive: "Screen kept awake",
+    wakeLockUnsupported:
+      "For best experience on iOS, keep the screen on manually",
+    moodLabel: "Mood",
   },
 } as const;
 

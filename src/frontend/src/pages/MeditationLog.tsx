@@ -200,7 +200,7 @@ function MeditationTimer({
   onWhisper?: () => void;
   personality?: string;
 }) {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [remaining, setRemaining] = useState(10 * 60);
@@ -583,14 +583,20 @@ function MeditationTimer({
           </AnimatePresence>
 
           {status === "finished" && (
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="rounded-xl px-6"
-              data-ocid="timer.cancel_button"
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
             >
-              {t("timerReset")}
-            </Button>
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                className="rounded-xl px-6"
+                data-ocid="timer.cancel_button"
+              >
+                {t("timerReset")}
+              </Button>
+            </motion.div>
           )}
 
           {wakeLockActive && (
@@ -598,7 +604,7 @@ function MeditationTimer({
               className="text-xs text-center"
               style={{ color: "rgba(255,255,255,0.4)", marginTop: "0.25rem" }}
             >
-              🌙 {lang === "ja" ? "画面オンを維持中" : "Screen kept awake"}
+              🌙 {t("wakeLockActive")}
             </p>
           )}
           {wakeLockUnsupported && status === "running" && (
@@ -606,9 +612,7 @@ function MeditationTimer({
               className="text-xs text-center"
               style={{ color: "rgba(255,255,255,0.3)", marginTop: "0.25rem" }}
             >
-              {lang === "ja"
-                ? "iOSの場合は画面が消えないようにご設定ください"
-                : "For best experience on iOS, keep the screen on manually"}
+              {t("wakeLockUnsupported")}
             </p>
           )}
         </div>
@@ -1327,11 +1331,12 @@ export default function MeditationLog() {
                         </span>
                         <span className="text-xs">
                           {t(moonPhase.key as Parameters<typeof t>[0])}
+                          <span className="opacity-60"> · {moonPhase.age}</span>
                         </span>
                         <button
                           type="button"
                           onClick={openNatalModal}
-                          className="text-xs opacity-50 hover:opacity-80 transition-opacity ml-1"
+                          className="text-xs opacity-65 hover:opacity-80 transition-opacity ml-1"
                           style={{ lineHeight: 1 }}
                           aria-label={t("natalMoonSettings")}
                           data-ocid="natal.open_modal_button"
@@ -1344,7 +1349,7 @@ export default function MeditationLog() {
                         <div
                           className="text-xs"
                           style={{
-                            color: "rgba(255,255,255,0.55)",
+                            color: "rgba(255,255,255,0.75)",
                             textShadow: "0 1px 3px rgba(0,0,0,0.4)",
                           }}
                         >
@@ -1456,7 +1461,7 @@ export default function MeditationLog() {
 
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">
-                        {lang === "ja" ? "気分" : "Mood"}
+                        {t("moodLabel")}
                       </Label>
                       <div className="flex gap-2" data-ocid="form.mood_select">
                         {([1, 2, 3, 4, 5] as const).map((v) => (
@@ -1523,11 +1528,11 @@ export default function MeditationLog() {
                     className="bg-card rounded-2xl shadow-card p-10 text-center"
                     data-ocid="records.empty_state"
                   >
-                    <p className="text-4xl mb-3">🌿</p>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-4xl mb-4">🌿</p>
+                    <p className="text-sm text-foreground font-medium">
                       {t("emptyStateTitle")}
                     </p>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {t("emptyStateSubtitle")}
                     </p>
                   </div>
@@ -1551,13 +1556,13 @@ export default function MeditationLog() {
                                 <span className="text-xs text-muted-foreground shrink-0">
                                   {t("formDuration")}
                                 </span>
-                                <input
+                                <Input
                                   type="number"
                                   value={editDuration}
                                   onChange={(e) =>
                                     setEditDuration(e.target.value)
                                   }
-                                  className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-sm text-foreground"
+                                  className="w-20 text-center"
                                   data-ocid={`records.input.${idx + 1}`}
                                   min="1"
                                 />
@@ -1565,11 +1570,11 @@ export default function MeditationLog() {
                                   {t("durationUnit")}
                                 </span>
                               </div>
-                              <textarea
+                              <Textarea
                                 value={editMemo}
                                 onChange={(e) => setEditMemo(e.target.value)}
                                 rows={3}
-                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground resize-none"
+                                className="resize-none"
                                 placeholder={t("formMemoPlaceholder")}
                                 data-ocid={`records.textarea.${idx + 1}`}
                               />
@@ -1580,7 +1585,7 @@ export default function MeditationLog() {
                                   className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
                                   data-ocid={`records.cancel_button.${idx + 1}`}
                                 >
-                                  キャンセル
+                                  {t("editCancel")}
                                 </button>
                                 <button
                                   type="button"
@@ -1592,7 +1597,7 @@ export default function MeditationLog() {
                                   }}
                                   data-ocid={`records.save_button.${idx + 1}`}
                                 >
-                                  保存
+                                  {t("editSave")}
                                 </button>
                               </div>
                             </div>
@@ -1642,12 +1647,34 @@ export default function MeditationLog() {
                                     "✨",
                                   ];
                                   const mood = Number(item.record.moodBefore);
+                                  const signName =
+                                    lang === "ja" ? z.signJa : z.signEn;
+                                  const recordAspect = natalMoonInfo
+                                    ? getMoonAspect(natalMoonInfo.natalLon, lon)
+                                    : null;
                                   return (
                                     <p className="text-[10px] text-muted-foreground/60 mt-1.5 flex gap-2 items-center">
                                       <span>
-                                        🌙 {z.symbol}
-                                        {lang === "ja" ? z.signJa : z.signEn}{" "}
-                                        {Math.floor(z.degree)}°
+                                        {natalMoonInfo ? (
+                                          recordAspect ? (
+                                            <>
+                                              🌙 {z.symbol}
+                                              {signName} {recordAspect.symbol}{" "}
+                                              {recordAspect.orb > 0 ? "+" : ""}
+                                              {recordAspect.orb}°
+                                            </>
+                                          ) : (
+                                            <>
+                                              🌙 {z.symbol}
+                                              {signName} {Math.floor(z.degree)}°
+                                            </>
+                                          )
+                                        ) : (
+                                          <>
+                                            🌙 {z.symbol}
+                                            {signName} {Math.floor(z.degree)}°
+                                          </>
+                                        )}
                                       </span>
                                       {mood >= 1 && mood <= 5 && (
                                         <span>{moodEmojis[mood - 1]}</span>
