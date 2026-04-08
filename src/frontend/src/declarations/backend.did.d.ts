@@ -10,6 +10,12 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface FeedbackEntry {
+  'id' : bigint,
+  'name' : string,
+  'message' : string,
+  'timestamp' : bigint,
+}
 export interface MeditationRecord {
   'duration' : bigint,
   'moodBefore' : bigint,
@@ -21,11 +27,24 @@ export interface MeditationRecordWithId {
   'id' : bigint,
   'record' : MeditationRecord,
 }
+export interface TreeState {
+  'personality' : string,
+  'stayHere' : boolean,
+  'cycleCompleteShown' : boolean,
+  'cycleIndex' : bigint,
+}
 export interface _SERVICE {
   'addRecord' : ActorMethod<[string, bigint, bigint, bigint, string], bigint>,
   'deleteRecord' : ActorMethod<[bigint], undefined>,
+  'getAllFeedback' : ActorMethod<[], Array<FeedbackEntry>>,
   'getAllRecordsWithIds' : ActorMethod<[], Array<MeditationRecordWithId>>,
   'getTotalMinutes' : ActorMethod<[], bigint>,
+  'getTreeState' : ActorMethod<[], TreeState>,
+  'getVisitCount' : ActorMethod<[], bigint>,
+  'recordVisit' : ActorMethod<[], bigint>,
+  'setTreeState' : ActorMethod<[string, bigint, boolean, boolean], undefined>,
+  'submitFeedback' : ActorMethod<[string, string], undefined>,
+  'updateRecord' : ActorMethod<[bigint, bigint, string], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

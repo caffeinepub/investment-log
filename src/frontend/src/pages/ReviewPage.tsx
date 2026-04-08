@@ -1,7 +1,7 @@
-import type { MeditationRecordWithId } from "@/backend";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/i18n";
+import type { MeditationRecordWithId } from "@/types";
 import { motion } from "motion/react";
 
 function getMonthDays(year: number, month: number) {

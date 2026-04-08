@@ -1,4 +1,3 @@
-import type { MeditationRecordWithId } from "@/backend";
 import CycleCompleteModal from "@/components/CycleCompleteModal";
 import PersonalitySelectScreen from "@/components/PersonalitySelectScreen";
 import PlantGrowth, { type TreePersonality } from "@/components/PlantGrowth";
@@ -47,6 +46,7 @@ import {
   starPhrases,
 } from "@/lib/whisperPhrases";
 import ReviewPage from "@/pages/ReviewPage";
+import type { MeditationRecordWithId } from "@/types";
 import {
   CalendarDays,
   Clock,
@@ -128,6 +128,26 @@ function vibrate(pattern: number | number[]) {
   if ("vibrate" in navigator) {
     navigator.vibrate(pattern);
   }
+}
+
+/**
+ * Derive a Date from a record ID.
+ * ICP backend assigns IDs as nanosecond timestamps (Int type).
+ * Positive IDs from backend → divide by 1_000_000 to get ms.
+ * Negative IDs are optimistic-UI temp values (-Date.now()) → negate, treat as ms.
+ * Falls back to noon on the record date if ID doesn't look like a timestamp.
+ */
+function recordIdToDate(id: bigint, date: string): Date {
+  const n = Number(id < BigInt(0) ? -id : id);
+  // ICP nanosecond timestamps are ~1.7e18 (year 2024 ≈ 1_700_000_000_000_000_000)
+  // JavaScript ms timestamps are ~1.7e12
+  const ms = n > 1e15 ? Math.floor(n / 1_000_000) : n;
+  const d = new Date(ms);
+  // Sanity check: year should be between 2020 and 2100
+  const year = d.getUTCFullYear();
+  if (year >= 2020 && year <= 2100) return d;
+  // Fallback: noon UTC on the record date
+  return new Date(`${date}T12:00:00Z`);
 }
 
 function getTodayStr(): string {
@@ -1611,6 +1631,25 @@ export default function MeditationLog() {
                                 <p className="text-[10px] text-muted-foreground">
                                   {item.record.date.slice(0, 4)}
                                 </p>
+                                {(() => {
+                                  const rd = recordIdToDate(
+                                    item.id,
+                                    item.record.date,
+                                  );
+                                  const hh = String(rd.getHours()).padStart(
+                                    2,
+                                    "0",
+                                  );
+                                  const mm = String(rd.getMinutes()).padStart(
+                                    2,
+                                    "0",
+                                  );
+                                  return (
+                                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                                      {hh}:{mm}
+                                    </p>
+                                  );
+                                })()}
                                 <div className="mt-2 bg-secondary rounded-lg px-2 py-1">
                                   <p className="text-sm font-bold text-primary">
                                     {Number(item.record.duration)}
@@ -1634,10 +1673,13 @@ export default function MeditationLog() {
                                   </p>
                                 )}
                                 {(() => {
-                                  const d = new Date(
-                                    `${item.record.date}T12:00:00`,
+                                  // Use actual record creation time for moon position accuracy
+                                  const recordDate = recordIdToDate(
+                                    item.id,
+                                    item.record.date,
                                   );
-                                  const lon = getMoonEclipticLongitude(d);
+                                  const lon =
+                                    getMoonEclipticLongitude(recordDate);
                                   const z = getZodiacInfo(lon);
                                   const moodEmojis = [
                                     "😔",

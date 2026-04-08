@@ -18,28 +18,28 @@ export interface MeditationRecord {
     memo: string;
     moodAfter: bigint;
 }
-export interface TreeState {
-    personality: string;
-    cycleIndex: bigint;
-    stayHere: boolean;
-    cycleCompleteShown: boolean;
-}
 export interface FeedbackEntry {
     id: bigint;
     name: string;
     message: string;
     timestamp: bigint;
 }
+export interface TreeState {
+    personality: string;
+    stayHere: boolean;
+    cycleCompleteShown: boolean;
+    cycleIndex: bigint;
+}
 export interface backendInterface {
     addRecord(date: string, duration: bigint, moodBefore: bigint, moodAfter: bigint, memo: string): Promise<bigint>;
-    updateRecord(id: bigint, duration: bigint, memo: string): Promise<void>;
     deleteRecord(id: bigint): Promise<void>;
+    getAllFeedback(): Promise<Array<FeedbackEntry>>;
     getAllRecordsWithIds(): Promise<Array<MeditationRecordWithId>>;
     getTotalMinutes(): Promise<bigint>;
     getTreeState(): Promise<TreeState>;
-    setTreeState(personality: string, cycleIndex: bigint, stayHere: boolean, cycleCompleteShown: boolean): Promise<void>;
-    recordVisit(): Promise<bigint>;
     getVisitCount(): Promise<bigint>;
+    recordVisit(): Promise<bigint>;
+    setTreeState(personality: string, cycleIndex: bigint, stayHere: boolean, cycleCompleteShown: boolean): Promise<void>;
     submitFeedback(name: string, message: string): Promise<void>;
-    getAllFeedback(): Promise<Array<FeedbackEntry>>;
+    updateRecord(id: bigint, duration: bigint, memo: string): Promise<void>;
 }

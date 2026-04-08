@@ -64,7 +64,7 @@ const ZODIAC_SYMBOLS = [
   "♓",
 ];
 
-const MAJOR_ASPECTS = [
+const ALL_ASPECTS = [
   {
     angle: 0,
     symbol: "☌",
@@ -72,9 +72,67 @@ const MAJOR_ASPECTS = [
     nameJa: "コンジャンクション",
     orb: 8,
   },
+  {
+    angle: 30,
+    symbol: "⚺",
+    nameEn: "Semi-sextile",
+    nameJa: "セミセクスタイル",
+    orb: 2,
+  },
+  { angle: 36, symbol: "d", nameEn: "Decile", nameJa: "デシル", orb: 1 },
+  { angle: 40, symbol: "N", nameEn: "Novile", nameJa: "ノヴィル", orb: 1 },
+  {
+    angle: 45,
+    symbol: "∠",
+    nameEn: "Semi-square",
+    nameJa: "セミスクエア",
+    orb: 2,
+  },
+  {
+    angle: 51.4,
+    symbol: "V",
+    nameEn: "Vigintile",
+    nameJa: "ヴィジンタイル",
+    orb: 1,
+  },
   { angle: 60, symbol: "⚹", nameEn: "Sextile", nameJa: "セクスタイル", orb: 6 },
+  {
+    angle: 72,
+    symbol: "Q",
+    nameEn: "Quintile",
+    nameJa: "クインタイル",
+    orb: 2,
+  },
+  {
+    angle: 80,
+    symbol: "bN",
+    nameEn: "Binovile",
+    nameJa: "バイノヴィル",
+    orb: 1,
+  },
   { angle: 90, symbol: "□", nameEn: "Square", nameJa: "スクエア", orb: 8 },
   { angle: 120, symbol: "△", nameEn: "Trine", nameJa: "トライン", orb: 8 },
+  {
+    angle: 135,
+    symbol: "⊼",
+    nameEn: "Sesquisquare",
+    nameJa: "セスキスクエア",
+    orb: 2,
+  },
+  {
+    angle: 144,
+    symbol: "bQ",
+    nameEn: "Biquintile",
+    nameJa: "バイクインタイル",
+    orb: 2,
+  },
+  {
+    angle: 150,
+    symbol: "⚻",
+    nameEn: "Quincunx",
+    nameJa: "クインカンクス",
+    orb: 3,
+  },
   {
     angle: 180,
     symbol: "☍",
@@ -197,7 +255,7 @@ export function getMoonAspect(
 
   let closest: (AspectInfo & { absOrb: number }) | null = null;
 
-  for (const asp of MAJOR_ASPECTS) {
+  for (const asp of ALL_ASPECTS) {
     const orb = diff - asp.angle;
     const absOrb = Math.abs(orb);
     if (absOrb <= asp.orb) {

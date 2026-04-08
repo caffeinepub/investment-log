@@ -1,0 +1,41 @@
+// Version: 1.0.0
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type FeedbackEntry__271733681 =
+  {id : Int; message : Text; name : Text; timestamp : Int};
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type MeditationRecord__1043024250 =
+  {
+    date : Text;
+    duration : Nat;
+    memo : Text;
+    moodAfter : Nat;
+    moodBefore : Nat
+  };
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+actor {
+  stable feedbacks :
+    {
+      var root : Node__46230540<Int, FeedbackEntry__271733681>;
+      var size : Nat__490723111
+    };
+  stable var nextFeedbackId : Int;
+  stable var nextId : Int;
+  stable records :
+    {
+      var root : Node__46230540<Int, MeditationRecord__1043024250>;
+      var size : Nat__490723111
+    };
+  stable var stableFeedbacks : [(Int, FeedbackEntry__271733681)];
+  stable var stableRecords : [(Int, MeditationRecord__1043024250)];
+  stable var treeCycleCompleteShown : Bool;
+  stable var treeCycleIndex : Nat;
+  stable var treePersonality : Text;
+  stable var treeStayHere : Bool;
+  stable var visitCount : Nat
+};

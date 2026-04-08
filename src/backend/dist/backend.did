@@ -1,0 +1,42 @@
+type TreeState = 
+ record {
+   cycleCompleteShown: bool;
+   cycleIndex: nat;
+   personality: text;
+   stayHere: bool;
+ };
+type MeditationRecordWithId = 
+ record {
+   id: int;
+   "record": MeditationRecord;
+ };
+type MeditationRecord = 
+ record {
+   date: text;
+   duration: nat;
+   memo: text;
+   moodAfter: nat;
+   moodBefore: nat;
+ };
+type FeedbackEntry = 
+ record {
+   id: int;
+   message: text;
+   name: text;
+   timestamp: int;
+ };
+service : {
+  addRecord: (date: text, duration: nat, moodBefore: nat, moodAfter: 
+   nat, memo: text) -> (int);
+  deleteRecord: (id: int) -> ();
+  getAllFeedback: () -> (vec FeedbackEntry) query;
+  getAllRecordsWithIds: () -> (vec MeditationRecordWithId) query;
+  getTotalMinutes: () -> (nat) query;
+  getTreeState: () -> (TreeState) query;
+  getVisitCount: () -> (nat) query;
+  recordVisit: () -> (nat);
+  setTreeState: (personality: text, cycleIndex: nat, stayHere: bool,
+   cycleCompleteShown: bool) -> ();
+  submitFeedback: (name: text, message: text) -> ();
+  updateRecord: (id: int, duration: nat, memo: text) -> ();
+}

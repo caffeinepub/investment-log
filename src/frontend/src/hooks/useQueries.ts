@@ -1,5 +1,6 @@
+import { createActor } from "@/backend";
+import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useActor } from "./useActor";
 
 // TreeState type (matches backend.d.ts; backend.ts is protected and doesn't export it yet)
 interface TreeState {
@@ -12,31 +13,33 @@ interface TreeState {
 // ---- Meditation Log hooks ----
 
 export function useGetAllRecords() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching } = useActor(createActor);
   return useQuery({
     queryKey: ["records"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAllRecordsWithIds();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (actor as any).getAllRecordsWithIds();
     },
     enabled: !!actor && !isFetching,
   });
 }
 
 export function useGetTotalMinutes() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching } = useActor(createActor);
   return useQuery({
     queryKey: ["totalMinutes"],
     queryFn: async () => {
       if (!actor) return BigInt(0);
-      return actor.getTotalMinutes();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (actor as any).getTotalMinutes();
     },
     enabled: !!actor && !isFetching,
   });
 }
 
 export function useAddRecord() {
-  const { actor } = useActor();
+  const { actor } = useActor(createActor);
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
@@ -47,7 +50,8 @@ export function useAddRecord() {
       memo: string;
     }) => {
       if (!actor) throw new Error("Actor not ready");
-      return actor.addRecord(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (actor as any).addRecord(
         args.date,
         args.duration,
         args.moodBefore,
@@ -61,6 +65,7 @@ export function useAddRecord() {
       const prevRecords = queryClient.getQueryData(["records"]);
       const prevTotal = queryClient.getQueryData(["totalMinutes"]);
       const tempId = BigInt(-Date.now());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       queryClient.setQueryData(["records"], (old: any[]) => [
         ...(old ?? []),
         {
@@ -80,6 +85,7 @@ export function useAddRecord() {
       );
       return { prevRecords, prevTotal };
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (_err, _args, context: any) => {
       if (context?.prevRecords !== undefined)
         queryClient.setQueryData(["records"], context.prevRecords);
@@ -94,22 +100,26 @@ export function useAddRecord() {
 }
 
 export function useDeleteRecord() {
-  const { actor } = useActor();
+  const { actor } = useActor(createActor);
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: bigint) => {
       if (!actor) throw new Error("Actor not ready");
-      return actor.deleteRecord(id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (actor as any).deleteRecord(id);
     },
     onMutate: async (id: bigint) => {
       await queryClient.cancelQueries({ queryKey: ["records"] });
       await queryClient.cancelQueries({ queryKey: ["totalMinutes"] });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const prevRecords = queryClient.getQueryData<any[]>(["records"]) ?? [];
       const prevTotal =
         queryClient.getQueryData<bigint>(["totalMinutes"]) ?? BigInt(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const removing = prevRecords.find((r: any) => r.id === id);
       queryClient.setQueryData(
         ["records"],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         prevRecords.filter((r: any) => r.id !== id),
       );
       if (removing) {
@@ -120,6 +130,7 @@ export function useDeleteRecord() {
       }
       return { prevRecords, prevTotal };
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (_err, _id, context: any) => {
       if (context?.prevRecords !== undefined)
         queryClient.setQueryData(["records"], context.prevRecords);
@@ -134,7 +145,7 @@ export function useDeleteRecord() {
 }
 
 export function useUpdateRecord() {
-  const { actor } = useActor();
+  const { actor } = useActor(createActor);
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -147,19 +158,23 @@ export function useUpdateRecord() {
       memo: string;
     }) => {
       if (!actor) throw new Error("Actor not ready");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actor as any).updateRecord(id, duration, memo);
     },
     onMutate: async ({ id, duration, memo }) => {
       await queryClient.cancelQueries({ queryKey: ["records"] });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const prevRecords = queryClient.getQueryData<any[]>(["records"]) ?? [];
       queryClient.setQueryData(
         ["records"],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         prevRecords.map((r: any) =>
           r.id === id ? { ...r, record: { ...r.record, duration, memo } } : r,
         ),
       );
       return { prevRecords };
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (_err: any, _vars: any, context: any) => {
       if (context?.prevRecords !== undefined)
         queryClient.setQueryData(["records"], context.prevRecords);
@@ -169,12 +184,14 @@ export function useUpdateRecord() {
     },
   });
 }
+
 export function useGetTreeState() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching } = useActor(createActor);
   return useQuery<TreeState | null>({
     queryKey: ["treeState"],
     queryFn: async () => {
       if (!actor) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actor as any).getTreeState() as Promise<TreeState>;
     },
     enabled: !!actor && !isFetching,
@@ -182,7 +199,7 @@ export function useGetTreeState() {
 }
 
 export function useSetTreeState() {
-  const { actor } = useActor();
+  const { actor } = useActor(createActor);
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
@@ -192,6 +209,7 @@ export function useSetTreeState() {
       cycleCompleteShown: boolean;
     }) => {
       if (!actor) throw new Error("Actor not ready");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actor as any).setTreeState(
         args.personality,
         args.cycleIndex,
@@ -208,11 +226,12 @@ export function useSetTreeState() {
 // ---- Visit & Feedback hooks ----
 
 export function useRecordVisit() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching } = useActor(createActor);
   return useQuery({
     queryKey: ["recordVisit"],
     queryFn: async () => {
       if (!actor) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actor as any).recordVisit();
     },
     enabled: !!actor && !isFetching,
@@ -221,11 +240,12 @@ export function useRecordVisit() {
 }
 
 export function useGetVisitCount() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching } = useActor(createActor);
   return useQuery<bigint>({
     queryKey: ["visitCount"],
     queryFn: async () => {
       if (!actor) return BigInt(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actor as any).getVisitCount() as Promise<bigint>;
     },
     enabled: !!actor && !isFetching,
@@ -233,11 +253,13 @@ export function useGetVisitCount() {
 }
 
 export function useGetAllFeedback() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching } = useActor(createActor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return useQuery<any[]>({
     queryKey: ["allFeedback"],
     queryFn: async () => {
       if (!actor) return [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actor as any).getAllFeedback() as Promise<any[]>;
     },
     enabled: !!actor && !isFetching,
@@ -245,10 +267,11 @@ export function useGetAllFeedback() {
 }
 
 export function useSubmitFeedback() {
-  const { actor } = useActor();
+  const { actor } = useActor(createActor);
   return useMutation({
     mutationFn: async (args: { name: string; message: string }) => {
       if (!actor) throw new Error("Actor not ready");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actor as any).submitFeedback(
         args.name,
         args.message,
@@ -258,7 +281,9 @@ export function useSubmitFeedback() {
 }
 
 // ---- Legacy stubs (kept for InvestmentLog.tsx compat) ----
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useGetInvestments = () =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useQuery<any[]>({ queryKey: ["investments"], queryFn: async () => [] });
 export const useAddInvestment = () =>
   useMutation({ mutationFn: async (_args: unknown) => {} });

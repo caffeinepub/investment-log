@@ -100,11 +100,30 @@ export interface MeditationRecord {
     memo: string;
     moodAfter: bigint;
 }
+export interface FeedbackEntry {
+    id: bigint;
+    name: string;
+    message: string;
+    timestamp: bigint;
+}
+export interface TreeState {
+    personality: string;
+    stayHere: boolean;
+    cycleCompleteShown: boolean;
+    cycleIndex: bigint;
+}
 export interface backendInterface {
     addRecord(date: string, duration: bigint, moodBefore: bigint, moodAfter: bigint, memo: string): Promise<bigint>;
     deleteRecord(id: bigint): Promise<void>;
+    getAllFeedback(): Promise<Array<FeedbackEntry>>;
     getAllRecordsWithIds(): Promise<Array<MeditationRecordWithId>>;
     getTotalMinutes(): Promise<bigint>;
+    getTreeState(): Promise<TreeState>;
+    getVisitCount(): Promise<bigint>;
+    recordVisit(): Promise<bigint>;
+    setTreeState(personality: string, cycleIndex: bigint, stayHere: boolean, cycleCompleteShown: boolean): Promise<void>;
+    submitFeedback(name: string, message: string): Promise<void>;
+    updateRecord(id: bigint, duration: bigint, memo: string): Promise<void>;
 }
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
@@ -136,6 +155,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getAllFeedback(): Promise<Array<FeedbackEntry>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllFeedback();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllFeedback();
+            return result;
+        }
+    }
     async getAllRecordsWithIds(): Promise<Array<MeditationRecordWithId>> {
         if (this.processError) {
             try {
@@ -161,6 +194,90 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getTotalMinutes();
+            return result;
+        }
+    }
+    async getTreeState(): Promise<TreeState> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTreeState();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTreeState();
+            return result;
+        }
+    }
+    async getVisitCount(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getVisitCount();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getVisitCount();
+            return result;
+        }
+    }
+    async recordVisit(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordVisit();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordVisit();
+            return result;
+        }
+    }
+    async setTreeState(arg0: string, arg1: bigint, arg2: boolean, arg3: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setTreeState(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setTreeState(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
+    async submitFeedback(arg0: string, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitFeedback(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitFeedback(arg0, arg1);
+            return result;
+        }
+    }
+    async updateRecord(arg0: bigint, arg1: bigint, arg2: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateRecord(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateRecord(arg0, arg1, arg2);
             return result;
         }
     }
